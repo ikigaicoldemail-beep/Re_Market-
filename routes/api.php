@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\MessageController;
 
 Route::get('/share/product/{id}',[ProductController::class,'share']);
+Route::get('/seller/dashboard/{id}', [ProductController::class, 'dashboard']);
+
 Route::get('/seller/{id}',[ProductController::class,'seller']);
 Route::get('/chat/{product_id}',[MessageController::class,'chat']);
 Route::post('/message',[MessageController::class,'send']);
@@ -16,7 +18,6 @@ Route::get('/products',[ProductController::class,'index']);
 Route::post('/product',[ProductController::class,'store']);
 Route::post('/register',[UserController::class,'register']);
 Route::post('/login',[UserController::class,'login']);
-Route::get('/seller/dashboard/{id}', [ProductController::class, 'dashboard']);
 
 // Route::middleware('auth:api')->group(function(){
 
