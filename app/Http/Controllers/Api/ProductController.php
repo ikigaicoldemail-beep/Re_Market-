@@ -18,7 +18,7 @@ class ProductController extends Controller
         'description' => $request->description,
         'price' => $request->price,
         'location' => $request->location,
-        'user_id' => Auth::id(),   // ✅ get logged-in user
+        'user_id' => 1,   // ✅ get logged-in user
         'schedule_at' => $request->schedule_at,
         'auto_post' => $request->auto_post
     ]);
