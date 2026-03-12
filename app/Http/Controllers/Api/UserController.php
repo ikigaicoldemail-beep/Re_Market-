@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -33,7 +34,7 @@ class UserController extends Controller
 
         $credentials = $request->only('email','password');
 
-        if (!$token = auth()->attempt($credentials)) {
+        if (!$token = Auth::guard('api')->attempt($credentials)) {
 
             return response()->json([
                 "status"=>"error",
