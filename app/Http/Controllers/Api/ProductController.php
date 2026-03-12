@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
@@ -13,13 +14,13 @@ class ProductController extends Controller
     {
 
     $product = Product::create([
-    'title'=>$request->title,
-    'description'=>$request->description,
-    'price'=>$request->price,
-    'location'=>$request->location,
-    'user_id'=>$request->user_id,
-    'schedule_at'=>$request->schedule_at,
-    'auto_post'=>$request->auto_post
+        'title' => $request->title,
+        'description' => $request->description,
+        'price' => $request->price,
+        'location' => $request->location,
+        'user_id' => Auth::id(),   // ✅ get logged-in user
+        'schedule_at' => $request->schedule_at,
+        'auto_post' => $request->auto_post
     ]);
 
     $message = "Product created successfully";
