@@ -2,7 +2,15 @@
 
 namespace App\Providers;
 
+use App\Contracts\AiImageEmbeddingClientInterface;
+use App\Integrations\Ai\FakeImageEmbeddingClient;
+use App\Integrations\Social\FacebookSocialClient;
+use App\Integrations\Social\TikTokSocialClient;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use App\Services\SocialPlatformManager;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +19,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(AiImageEmbeddingClientInterface::class, FakeImageEmbeddingClient::class);
+
+        $this->app->singleton(FacebookSocialClient::class);
+        $this->app->singleton(TikTokSocialClient::class);
+        $this->app->tag([FacebookSocialClient::class, TikTokSocialClient::class], 'social.platform.clients');
+        $this->app->singleton(SocialPlatformManager::class, function ($app) {
+            return new SocialPlatformManager($app->tagged('social.platform.clients'));
+        });
     }
 
     /**
@@ -19,6 +34,34 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute((int) env('API_RATE_LIMIT', 120))
+                ->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('auth', function (Request $request) {
+            return Limit::perMinute((int) env('AUTH_RATE_LIMIT', 20))
+                ->by($request->ip());
+        });
+
+        RateLimiter::for('chat', function (Request $request) {
+            return Limit::perMinute((int) env('CHAT_RATE_LIMIT', 60))
+                ->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('public-search', function (Request $request) {
+            return Limit::perMinute((int) env('PUBLIC_SEARCH_RATE_LIMIT', 90))
+                ->by($request->ip());
+        });
+
+        RateLimiter::for('social', function (Request $request) {
+            return Limit::perMinute((int) env('SOCIAL_RATE_LIMIT', 30))
+                ->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('ai', function (Request $request) {
+            return Limit::perMinute((int) env('AI_RATE_LIMIT', 20))
+                ->by($request->user()?->id ?: $request->ip());
+        });
     }
 }

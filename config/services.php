@@ -35,4 +35,24 @@ return [
         ],
     ],
 
+    'ai_similarity' => [
+        'provider' => env('AI_SIMILARITY_PROVIDER', 'fake-image-embedding'),
+        'model' => env('AI_SIMILARITY_MODEL', 'fake-hash-v1'),
+        'api_key' => env('AI_SIMILARITY_API_KEY'),
+        'endpoint' => env('AI_SIMILARITY_ENDPOINT'),
+    ],
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI'),
+        'graph_version' => env('FACEBOOK_GRAPH_VERSION', 'v22.0'),
+    ],
+
+    'tiktok' => [
+        'client_id' => env('TIKTOK_CLIENT_ID'),
+        'client_secret' => env('TIKTOK_CLIENT_SECRET'),
+        'redirect' => env('TIKTOK_REDIRECT_URI'),
+    ],
+
 ];

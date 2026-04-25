@@ -58,6 +58,12 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        'marketplace' => [
+            'driver' => 'stack',
+            'channels' => explode(',', (string) env('LOG_MARKETPLACE_STACK', 'daily,stderr')),
+            'ignore_exceptions' => false,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
