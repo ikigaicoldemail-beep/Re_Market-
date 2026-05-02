@@ -10,9 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Tymon\JWTAuth\Http\Middleware\Authenticate as JwtAuthenticate;
-use Tymon\JWTAuth\Http\Middleware\RefreshToken as JwtRefreshToken;
 use App\Http\Middleware\LogApiActivity;
+use App\Http\Middleware\EnsureUserHasRole;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,9 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'jwt.auth' => JwtAuthenticate::class,
-            'jwt.refresh' => JwtRefreshToken::class,
             'activity.log' => LogApiActivity::class,
+            'role' => EnsureUserHasRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

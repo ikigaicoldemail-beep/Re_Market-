@@ -1,0 +1,145 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Product\ListProductsRequest;
+use App\Http\Requests\Product\StoreProductRequest;
+use App\Http\Requests\Product\UpdateProductRequest;
+use App\Http\Requests\Product\UploadProductImagesRequest;
+use App\Http\Resources\ProductResource;
+use App\Http\Resources\StoreResource;
+use App\Models\Product;
+use App\Models\Store;
+use App\Services\ProductService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ProductController extends Controller
+{
+    public function __construct(private readonly ProductService $productService)
+    {
+    }
+
+    public function index(ListProductsRequest $request): JsonResponse
+    {
+        $products = $this->productService->listPublic($request->validated());
+
+        return response()->json([
+            'products' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    public function store(StoreProductRequest $request): JsonResponse
+    {
+        $product = $this->productService->create($request->user(), $request->validated());
+
+        return response()->json([
+            'message' => 'Product created successfully.',
+            'product' => new ProductResource($product),
+        ], 201);
+    }
+
+    public function show(Request $request, Product $product): JsonResponse
+    {
+        if (
+            $product->status !== 'published'
+            && (! $request->user() || $request->user()->id !== $product->user_id)
+        ) {
+            abort(404);
+        }
+
+        $product->load(['images', 'store', 'category', 'condition', 'user.profile']);
+
+        return response()->json([
+            'product' => new ProductResource($product),
+        ]);
+    }
+
+    public function update(UpdateProductRequest $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $product = $this->productService->update($product, $request->user(), $request->validated());
+
+        return response()->json([
+            'message' => 'Product updated successfully.',
+            'product' => new ProductResource($product),
+        ]);
+    }
+
+    public function destroy(Product $product): JsonResponse
+    {
+        $this->authorize('delete', $product);
+
+        $this->productService->delete($product->load('images'));
+
+        return response()->json([
+            'message' => 'Product deleted successfully.',
+        ]);
+    }
+
+    public function uploadImages(UploadProductImagesRequest $request, Product $product): JsonResponse
+    {
+        $this->authorize('update', $product);
+
+        $product = $this->productService->uploadImages($product, $request->file('images'));
+
+        return response()->json([
+            'message' => 'Product images uploaded successfully.',
+            'product' => new ProductResource($product),
+        ]);
+    }
+
+    public function myProducts(Request $request): JsonResponse
+    {
+        $products = $this->productService->listForOwner($request->user());
+
+        return response()->json([
+            'products' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    public function storePage(Store $store): JsonResponse
+    {
+        $products = $this->productService->listForStore($store);
+
+        return response()->json([
+            'store' => new StoreResource($store),
+            'products' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+            ],
+        ]);
+    }
+
+    public function share(Product $product): JsonResponse
+    {
+        $sharePath = '/products/'.$product->id;
+
+        return response()->json([
+            'share' => [
+                'product_id' => $product->id,
+                'title' => $product->title,
+                'slug' => $product->slug,
+                'share_url' => rtrim(config('app.frontend_url', config('app.url')), '/').$sharePath,
+                'api_url' => url('/api/v1/products/'.$product->id),
+            ],
+        ]);
+    }
+}
