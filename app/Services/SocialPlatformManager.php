@@ -11,9 +11,7 @@ class SocialPlatformManager
     /**
      * @param  iterable<SocialPlatformClientInterface>  $clients
      */
-    public function __construct(private readonly iterable $clients)
-    {
-    }
+    public function __construct(private readonly iterable $clients) {}
 
     public function forPlatform(string $platform): SocialPlatformClientInterface
     {

@@ -5,6 +5,7 @@ namespace App\Integrations\Social;
 use App\Contracts\SocialPlatformClientInterface;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
+use RuntimeException;
 
 class TikTokSocialClient implements SocialPlatformClientInterface
 {
@@ -15,6 +16,10 @@ class TikTokSocialClient implements SocialPlatformClientInterface
 
     public function publish(SocialAccount $account, SocialPost $post): array
     {
+        if (app()->environment('production')) {
+            throw new RuntimeException('Placeholder TikTok publisher cannot be used in production.');
+        }
+
         return [
             'provider_post_id' => 'tt_'.uniqid(),
             'response' => [

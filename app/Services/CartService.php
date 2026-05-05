@@ -30,6 +30,12 @@ class CartService
 
     public function addItem(User $user, Product $product, int $quantity): Cart
     {
+        if ($product->user_id === $user->id) {
+            throw ValidationException::withMessages([
+                'product_id' => ['You cannot add your own product to cart.'],
+            ]);
+        }
+
         if ($product->status !== 'published') {
             throw ValidationException::withMessages([
                 'product_id' => ['Only published products can be added to cart.'],
@@ -45,6 +51,16 @@ class CartService
         $cart = $this->getCart($user);
 
         DB::transaction(function () use ($cart, $product, $quantity) {
+            $cart = Cart::query()
+                ->whereKey($cart->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $product = Product::query()
+                ->whereKey($product->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $item = $cart->items()->firstOrNew([
                 'product_id' => $product->id,
             ]);
@@ -70,19 +86,24 @@ class CartService
 
     public function updateItem(CartItem $item, int $quantity): Cart
     {
-        $product = $item->product;
+        DB::transaction(function () use ($item, $quantity) {
+            $product = Product::query()
+                ->whereKey($item->product_id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($product->stock_quantity < $quantity) {
-            throw ValidationException::withMessages([
-                'quantity' => ['Requested quantity exceeds available stock.'],
+            if ($product->stock_quantity < $quantity) {
+                throw ValidationException::withMessages([
+                    'quantity' => ['Requested quantity exceeds available stock.'],
+                ]);
+            }
+
+            $item->update([
+                'quantity' => $quantity,
+                'unit_price_amount' => $product->price_amount,
+                'line_total_amount' => $quantity * $product->price_amount,
             ]);
-        }
-
-        $item->update([
-            'quantity' => $quantity,
-            'unit_price_amount' => $product->price_amount,
-            'line_total_amount' => $quantity * $product->price_amount,
-        ]);
+        });
 
         return $this->refreshTotals($item->cart->fresh());
     }

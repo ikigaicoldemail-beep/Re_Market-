@@ -12,9 +12,7 @@ use Illuminate\Http\Request;
 
 class WishlistController extends Controller
 {
-    public function __construct(private readonly WishlistService $wishlistService)
-    {
-    }
+    public function __construct(private readonly WishlistService $wishlistService) {}
 
     public function index(Request $request): JsonResponse
     {

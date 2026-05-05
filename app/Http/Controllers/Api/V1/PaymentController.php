@@ -10,9 +10,7 @@ use Illuminate\Http\JsonResponse;
 
 class PaymentController extends Controller
 {
-    public function __construct(private readonly CheckoutService $checkoutService)
-    {
-    }
+    public function __construct(private readonly CheckoutService $checkoutService) {}
 
     public function show(Order $order): JsonResponse
     {

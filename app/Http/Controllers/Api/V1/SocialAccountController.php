@@ -12,9 +12,7 @@ use Illuminate\Http\Request;
 
 class SocialAccountController extends Controller
 {
-    public function __construct(private readonly SocialAccountService $socialAccountService)
-    {
-    }
+    public function __construct(private readonly SocialAccountService $socialAccountService) {}
 
     public function index(Request $request): JsonResponse
     {

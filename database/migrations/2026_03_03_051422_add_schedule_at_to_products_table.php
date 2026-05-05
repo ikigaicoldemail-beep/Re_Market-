@@ -16,7 +16,7 @@ return new class extends Migration
         });
     }
 
-public function down(): void
+    public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
             $table->dropColumn('schedule_at');

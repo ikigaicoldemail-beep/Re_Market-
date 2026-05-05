@@ -34,7 +34,7 @@ class AuthApiTest extends TestCase
         ]);
     }
 
-    public function test_user_can_register_as_admin_with_role(): void
+    public function test_user_cannot_register_as_admin_without_admin_key(): void
     {
         $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'Admin User',
@@ -46,23 +46,25 @@ class AuthApiTest extends TestCase
         ]);
 
         $response
-            ->assertCreated()
-            ->assertJsonPath('user.role', 'admin');
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('admin_key');
 
-        $this->assertDatabaseHas('users', [
+        $this->assertDatabaseMissing('users', [
             'email' => 'admin@example.com',
-            'role' => 'admin',
         ]);
     }
 
-    public function test_admin_registration_does_not_require_admin_key(): void
+    public function test_user_can_register_as_admin_with_valid_admin_key(): void
     {
+        config(['auth.admin_registration_key' => 'secret-admin-key']);
+
         $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'password' => 'Password123',
             'password_confirmation' => 'Password123',
             'role' => 'admin',
+            'admin_key' => 'secret-admin-key',
         ]);
 
         $response

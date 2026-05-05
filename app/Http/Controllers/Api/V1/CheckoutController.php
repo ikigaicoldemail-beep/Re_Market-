@@ -11,9 +11,7 @@ use Illuminate\Http\JsonResponse;
 
 class CheckoutController extends Controller
 {
-    public function __construct(private readonly CheckoutService $checkoutService)
-    {
-    }
+    public function __construct(private readonly CheckoutService $checkoutService) {}
 
     public function store(CheckoutRequest $request): JsonResponse
     {

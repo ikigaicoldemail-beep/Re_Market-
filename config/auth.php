@@ -37,15 +37,15 @@ return [
 
     'guards' => [
 
-    'web' => [
-        'driver' => 'session',
-        'provider' => 'users',
-    ],
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
 
-    'api' => [
-        'driver' => 'jwt',
-        'provider' => 'users',
-    ],
+        'api' => [
+            'driver' => 'jwt',
+            'provider' => 'users',
+        ],
 
     ],
 
@@ -118,5 +118,7 @@ return [
     */
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+
+    'admin_registration_key' => env('ADMIN_REGISTRATION_KEY'),
 
 ];

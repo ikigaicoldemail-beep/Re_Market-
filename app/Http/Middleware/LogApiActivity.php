@@ -9,9 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class LogApiActivity
 {
-    public function __construct(private readonly ActivityLogService $activityLogService)
-    {
-    }
+    public function __construct(private readonly ActivityLogService $activityLogService) {}
 
     public function handle(Request $request, Closure $next): Response
     {

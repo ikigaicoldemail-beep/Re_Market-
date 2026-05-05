@@ -6,11 +6,11 @@ use App\Contracts\AiImageEmbeddingClientInterface;
 use App\Integrations\Ai\FakeImageEmbeddingClient;
 use App\Integrations\Social\FacebookSocialClient;
 use App\Integrations\Social\TikTokSocialClient;
+use App\Services\SocialPlatformManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use App\Services\SocialPlatformManager;
 
 class AppServiceProvider extends ServiceProvider
 {

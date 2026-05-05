@@ -1,0 +1,21 @@
+<?php
+
+use App\Http\Controllers\Api\V1\AdminController;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware('role:admin')->prefix('admin')->group(function () {
+    Route::get('/users', [AdminController::class, 'users']);
+    Route::patch('/users/{user}', [AdminController::class, 'updateUser']);
+    Route::delete('/users/{user}', [AdminController::class, 'deleteUser']);
+
+    Route::get('/stores', [AdminController::class, 'stores']);
+    Route::patch('/stores/{store}', [AdminController::class, 'updateStore']);
+    Route::delete('/stores/{store}', [AdminController::class, 'deleteStore']);
+
+    Route::get('/products', [AdminController::class, 'products']);
+    Route::patch('/products/{product}', [AdminController::class, 'updateProduct']);
+    Route::delete('/products/{product}', [AdminController::class, 'deleteProduct']);
+
+    Route::get('/orders', [AdminController::class, 'orders']);
+    Route::patch('/orders/{order}', [AdminController::class, 'updateOrder']);
+});

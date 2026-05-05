@@ -24,6 +24,7 @@ class OrderResource extends JsonResource
             'paid_at' => $this->paid_at,
             'cancelled_at' => $this->cancelled_at,
             'completed_at' => $this->completed_at,
+            'buyer' => new UserResource($this->whenLoaded('buyer')),
             'address' => new AddressResource($this->whenLoaded('address')),
             'store' => new StoreResource($this->whenLoaded('store')),
             'items' => OrderItemResource::collection($this->whenLoaded('items')),

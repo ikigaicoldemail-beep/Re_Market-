@@ -16,9 +16,7 @@ use Illuminate\Http\Request;
 
 class ConversationController extends Controller
 {
-    public function __construct(private readonly ChatService $chatService)
-    {
-    }
+    public function __construct(private readonly ChatService $chatService) {}
 
     public function index(Request $request): JsonResponse
     {

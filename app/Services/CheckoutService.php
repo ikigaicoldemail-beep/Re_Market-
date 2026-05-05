@@ -3,9 +3,10 @@
 namespace App\Services;
 
 use App\Models\Address;
-use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,21 +31,59 @@ class CheckoutService
         }
 
         return DB::transaction(function () use ($user, $address, $cart, $data) {
-            foreach ($cart->items as $item) {
-                if ($item->product->status !== 'published') {
-                    throw ValidationException::withMessages([
-                        'cart' => ["Product {$item->product->title} is no longer available."],
-                    ]);
-                }
+            $items = CartItem::query()
+                ->where('cart_id', $cart->id)
+                ->with(['product.condition', 'product.store', 'product.images'])
+                ->lockForUpdate()
+                ->get();
 
-                if ($item->product->stock_quantity < $item->quantity) {
-                    throw ValidationException::withMessages([
-                        'cart' => ["Product {$item->product->title} does not have enough stock."],
-                    ]);
-                }
+            if ($items->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'cart' => ['Your cart is empty.'],
+                ]);
             }
 
-            $storeIds = $cart->items->pluck('product.store_id')->filter()->unique()->values();
+            foreach ($items as $item) {
+                $product = Product::query()
+                    ->whereKey($item->product_id)
+                    ->with(['condition', 'store', 'images'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $product || $product->status !== 'published') {
+                    $title = $item->product?->title ?? 'item';
+
+                    throw ValidationException::withMessages([
+                        'cart' => ["Product {$title} is no longer available."],
+                    ]);
+                }
+
+                if ($product->user_id === $user->id) {
+                    throw ValidationException::withMessages([
+                        'cart' => ["You cannot checkout your own product {$product->title}."],
+                    ]);
+                }
+
+                if ((int) $item->unit_price_amount !== (int) $product->price_amount) {
+                    throw ValidationException::withMessages([
+                        'cart' => ["Product {$product->title} price has changed. Please refresh your cart before checkout."],
+                    ]);
+                }
+
+                if ($product->stock_quantity < $item->quantity) {
+                    throw ValidationException::withMessages([
+                        'cart' => ["Product {$product->title} does not have enough stock."],
+                    ]);
+                }
+
+                $item->setRelation('product', $product);
+            }
+
+            $storeIds = $items->pluck('product.store_id')->filter()->unique()->values();
+            $subtotal = (int) $items->sum('line_total_amount');
+            $discount = 0;
+            $shipping = 0;
+            $total = $subtotal - $discount + $shipping;
 
             $order = Order::create([
                 'order_number' => 'ORD-'.strtoupper(Str::random(10)),
@@ -54,15 +93,15 @@ class CheckoutService
                 'status' => 'pending',
                 'payment_status' => 'pending',
                 'currency' => $cart->currency,
-                'subtotal_amount' => $cart->subtotal_amount,
-                'discount_amount' => $cart->discount_amount,
-                'shipping_amount' => $cart->shipping_amount,
-                'total_amount' => $cart->total_amount,
+                'subtotal_amount' => $subtotal,
+                'discount_amount' => $discount,
+                'shipping_amount' => $shipping,
+                'total_amount' => $total,
                 'notes' => $data['notes'] ?? null,
                 'placed_at' => now(),
             ]);
 
-            foreach ($cart->items as $item) {
+            foreach ($items as $item) {
                 $product = $item->product;
 
                 $order->items()->create([
@@ -78,24 +117,29 @@ class CheckoutService
                     'fulfillment_status' => 'pending',
                 ]);
 
-                $product->decrement('stock_quantity', $item->quantity);
+                $product->stock_quantity -= $item->quantity;
 
-                if ($product->fresh()->stock_quantity <= 0) {
-                    $product->update(['status' => 'sold']);
+                if ($product->stock_quantity <= 0) {
+                    $product->status = 'sold';
                 }
+
+                $product->save();
             }
 
-            $payment = $order->payments()->create([
+            $order->payments()->create([
                 'user_id' => $user->id,
                 'provider' => $data['provider'] ?? 'manual',
                 'provider_reference' => null,
                 'payment_method' => $data['payment_method'] ?? 'cash_on_delivery',
                 'status' => 'pending',
                 'currency' => $order->currency,
-                'amount' => $order->total_amount,
+                'amount' => $total,
             ]);
 
-            $cart->items()->delete();
+            CartItem::query()
+                ->where('cart_id', $cart->id)
+                ->whereIn('id', $items->pluck('id'))
+                ->delete();
             $cart->update([
                 'status' => 'active',
                 'checked_out_at' => now(),

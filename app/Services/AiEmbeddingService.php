@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\Storage;
 
 class AiEmbeddingService
 {
-    public function __construct(private readonly AiImageEmbeddingClientInterface $client)
-    {
-    }
+    public function __construct(private readonly AiImageEmbeddingClientInterface $client) {}
 
     public function generateForProductImage(ProductImage $productImage): ProductImageEmbedding
     {

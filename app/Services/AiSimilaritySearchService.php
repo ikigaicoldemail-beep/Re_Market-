@@ -6,20 +6,15 @@ use App\Contracts\AiImageEmbeddingClientInterface;
 use App\Models\AiSearchLog;
 use App\Models\Product;
 use App\Models\ProductImage;
-use App\Models\ProductImageEmbedding;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AiSimilaritySearchService
 {
-    public function __construct(private readonly AiImageEmbeddingClientInterface $client)
-    {
-    }
+    public function __construct(private readonly AiImageEmbeddingClientInterface $client) {}
 
     public function search(User $user, array $data): array
     {

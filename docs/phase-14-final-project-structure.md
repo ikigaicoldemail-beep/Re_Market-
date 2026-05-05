@@ -306,25 +306,30 @@ Current:
 
 - `routes/api.php`
 - `routes/api/v1.php`
+- `routes/api/v1/*.php`
 
-Recommended later if the API surface keeps growing:
+The V1 API surface is split by domain:
 
 ```text
 routes/
   api.php
   api/
+    v1.php
     v1/
+      addresses.php
+      admin.php
+      ai.php
       auth.php
       profile.php
       stores.php
       products.php
       commerce.php
       chat.php
-      ai.php
       social.php
+      wishlist.php
 ```
 
-That split is not required immediately, but it will improve maintainability as the route file gets larger.
+`routes/api/v1.php` should stay as a thin loader. New endpoint groups should go into the closest domain file instead of growing the loader.
 
 ## Recommended docs structure
 
@@ -368,9 +373,9 @@ tests/
 
 Current tests are a good start, but domain subfolders will scale better than a flat test layout.
 
-## Prototype cleanup that should happen next
+## Prototype cleanup status
 
-The repository still contains some prototype leftovers that should be retired when convenient:
+The old prototype layer has already been removed:
 
 - `app/Http/Controllers/Api/UserController.php`
 - `app/Http/Controllers/Api/ProductController.php`
@@ -380,11 +385,11 @@ The repository still contains some prototype leftovers that should be retired wh
 
 These were part of the earlier prototype and are no longer the intended API surface.
 
-Recommendation:
+Current recommendation:
 
-1. keep them only until you confirm no routes reference them
-2. remove them in a cleanup pass
-3. keep all new work inside `Api/V1`
+1. keep all new work inside `Api/V1`
+2. remove dead request/controller code as routes move into dedicated modules
+3. prefer domain-specific controllers such as `AdminController`, `ProductController`, and `ConversationController` over broad catch-all controllers
 
 ## Recommended module map
 

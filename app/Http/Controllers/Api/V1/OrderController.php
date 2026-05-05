@@ -11,9 +11,7 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function __construct(private readonly CheckoutService $checkoutService)
-    {
-    }
+    public function __construct(private readonly CheckoutService $checkoutService) {}
 
     public function index(Request $request): JsonResponse
     {

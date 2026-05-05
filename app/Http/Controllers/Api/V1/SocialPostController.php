@@ -16,9 +16,7 @@ use Illuminate\Http\Request;
 
 class SocialPostController extends Controller
 {
-    public function __construct(private readonly SocialPostingService $socialPostingService)
-    {
-    }
+    public function __construct(private readonly SocialPostingService $socialPostingService) {}
 
     public function index(Request $request): JsonResponse
     {

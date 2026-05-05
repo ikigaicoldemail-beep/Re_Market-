@@ -1,17 +1,18 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\LogApiActivity;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use App\Http\Middleware\LogApiActivity;
-use App\Http\Middleware\EnsureUserHasRole;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'activity.log' => LogApiActivity::class,
+            'account.active' => EnsureAccountIsActive::class,
             'role' => EnsureUserHasRole::class,
         ]);
     })

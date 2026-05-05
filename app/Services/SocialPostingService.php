@@ -8,14 +8,11 @@ use App\Models\SharedProduct;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class SocialPostingService
 {
-    public function __construct(private readonly SocialPlatformManager $platformManager)
-    {
-    }
+    public function __construct(private readonly SocialPlatformManager $platformManager) {}
 
     public function createPost(User $user, Product $product, SocialAccount $account, array $data): SocialPost
     {

@@ -11,9 +11,7 @@ use Illuminate\Http\JsonResponse;
 
 class AiSimilaritySearchController extends Controller
 {
-    public function __construct(private readonly AiSimilaritySearchService $similaritySearchService)
-    {
-    }
+    public function __construct(private readonly AiSimilaritySearchService $similaritySearchService) {}
 
     public function store(ImageSimilaritySearchRequest $request): JsonResponse
     {

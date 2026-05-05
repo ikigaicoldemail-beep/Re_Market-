@@ -60,6 +60,15 @@ class AuthService
 
         /** @var User $user */
         $user = Auth::guard('api')->user();
+
+        if ($user->status !== 'active') {
+            Auth::guard('api')->logout();
+
+            throw ValidationException::withMessages([
+                'email' => ['This account is not active.'],
+            ]);
+        }
+
         $user->forceFill([
             'last_login_at' => now(),
         ])->save();

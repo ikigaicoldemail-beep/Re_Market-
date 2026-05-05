@@ -14,9 +14,7 @@ use Illuminate\Http\Request;
 
 class ScheduledPostController extends Controller
 {
-    public function __construct(private readonly ScheduledPostService $scheduledPostService)
-    {
-    }
+    public function __construct(private readonly ScheduledPostService $scheduledPostService) {}
 
     public function index(Request $request): JsonResponse
     {

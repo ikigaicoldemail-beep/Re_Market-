@@ -276,3 +276,11 @@ At the end of Phase 1, we have:
 - A realistic implementation order for production-ready delivery
 
 This becomes the contract for Phase 2 system design and Phase 3 schema design.
+
+## 11. Production Scope Reference
+
+The latest cleaned production scope, based on the handwritten project scope notes, is maintained in:
+
+- `docs/production-scope-and-readiness-roadmap.md`
+
+That document separates the full product vision from the first production release and lists the blockers that must be completed before a real launch.
