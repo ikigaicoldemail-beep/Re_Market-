@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Crypt;
 
 class SocialAccount extends Model
 {
@@ -36,6 +37,32 @@ class SocialAccount extends Model
             'token_expires_at' => 'datetime',
             'last_synced_at' => 'datetime',
         ];
+    }
+
+    public function getAccessTokenAttribute(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Throwable) {
+            return $value;
+        }
+    }
+
+    public function getRefreshTokenAttribute(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Throwable) {
+            return $value;
+        }
     }
 
     public function user(): BelongsTo

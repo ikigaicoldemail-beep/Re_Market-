@@ -7,17 +7,23 @@ use App\Http\Requests\Product\ListProductsRequest;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
 use App\Http\Requests\Product\UploadProductImagesRequest;
+use App\Http\Requests\Social\ScheduleProductPostRequest;
 use App\Http\Resources\ProductResource;
+use App\Http\Resources\ScheduledPostResource;
 use App\Http\Resources\StoreResource;
 use App\Models\Product;
 use App\Models\Store;
 use App\Services\ProductService;
+use App\Services\SocialPostingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    public function __construct(private readonly ProductService $productService) {}
+    public function __construct(
+        private readonly ProductService $productService,
+        private readonly SocialPostingService $socialPostingService
+    ) {}
 
     public function index(ListProductsRequest $request): JsonResponse
     {
@@ -139,5 +145,27 @@ class ProductController extends Controller
                 'api_url' => url('/api/v1/products/'.$product->id),
             ],
         ]);
+    }
+
+    public function schedulePost(ScheduleProductPostRequest $request, ?Product $product = null): JsonResponse
+    {
+        $validated = $request->validated();
+
+        if (! $product) {
+            $product = Product::findOrFail($validated['product_id']);
+        }
+
+        $this->authorize('update', $product);
+
+        $scheduledPost = $this->socialPostingService->scheduleProductPost(
+            $request->user(),
+            $product,
+            $validated
+        );
+
+        return response()->json([
+            'message' => 'Product post scheduled successfully.',
+            'scheduled_post' => new ScheduledPostResource($scheduledPost),
+        ], 201);
     }
 }

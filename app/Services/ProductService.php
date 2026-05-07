@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\ProductCreated;
 use App\Jobs\GenerateProductImageEmbeddingJob;
 use App\Models\Product;
 use App\Models\Store;
@@ -125,6 +126,9 @@ class ProductService
                 'schedule_at' => $data['schedule_at'] ?? null,
                 'auto_post' => $data['auto_post'] ?? null,
             ]);
+
+            // Fire event to trigger auto-posting if enabled
+            event(new ProductCreated($product));
 
             return $product->load(['images', 'store', 'category', 'condition', 'user.profile']);
         });

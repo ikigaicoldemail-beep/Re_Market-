@@ -108,6 +108,65 @@ class SocialPostingService
         }
     }
 
+    public function scheduleProductPost(User $user, Product $product, array $data): \App\Models\ScheduledPost
+    {
+        $this->assertProductOwnership($user, $product);
+
+        // Get marketplace account or user account
+        $account = $this->getTargetAccount($user, $data);
+
+        // Create social post (draft status)
+        $post = SocialPost::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'social_account_id' => $account->id,
+            'platform' => $account->platform,
+            'caption' => $data['caption'] ?? $this->defaultCaption($product),
+            'media_payload' => [
+                'image' => $product->image,
+                'title' => $product->title,
+                'price_amount' => $product->price_amount,
+                'currency' => $product->currency,
+            ],
+            'status' => 'queued',
+        ]);
+
+        // Calculate scheduled datetime
+        $scheduledDatetime = \Carbon\Carbon::parse($data['scheduled_date'].' '.$data['scheduled_time']);
+
+        // Create scheduled post
+        $scheduledPost = \App\Models\ScheduledPost::create([
+            'social_post_id' => $post->id,
+            'scheduled_for' => $scheduledDatetime,
+            'status' => 'scheduled',
+        ]);
+
+        return $scheduledPost->load(['socialPost.product.images', 'socialPost.socialAccount']);
+    }
+
+    private function getTargetAccount(User $user, array $data): SocialAccount
+    {
+        if ($data['post_to'] === 'user_account') {
+            $account = SocialAccount::findOrFail($data['social_account_id']);
+            $this->assertAccountOwnership($user, $account);
+            return $account;
+        }
+
+        // For marketplace, get or create marketplace account
+        $account = SocialAccount::where('platform', 'facebook')
+            ->where('user_id', $user->id)
+            ->where('provider_account_name', 'like', '%marketplace%')
+            ->firstOrFail();
+
+        if ($account->status !== 'active') {
+            throw ValidationException::withMessages([
+                'post_to' => ['Marketplace account is not connected or active.'],
+            ]);
+        }
+
+        return $account;
+    }
+
     private function defaultCaption(Product $product): string
     {
         return "{$product->title} - {$product->currency} {$product->price_amount}";

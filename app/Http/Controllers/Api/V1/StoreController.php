@@ -8,10 +8,34 @@ use App\Http\Resources\StoreResource;
 use App\Models\Store;
 use App\Services\StoreService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class StoreController extends Controller
 {
     public function __construct(private readonly StoreService $storeService) {}
+
+    public function myStore(Request $request): JsonResponse
+    {
+        $store = $request->user()->store;
+
+        if (! $store) {
+            return response()->json([
+                'message' => 'You do not have a store yet.',
+                'store' => null,
+            ], 404);
+        }
+
+        return response()->json([
+            'store' => new StoreResource($store),
+        ]);
+    }
+
+    public function show(Store $store): JsonResponse
+    {
+        return response()->json([
+            'store' => new StoreResource($store),
+        ]);
+    }
 
     public function store(StoreUpsertRequest $request): JsonResponse
     {
