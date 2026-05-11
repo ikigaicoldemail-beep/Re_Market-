@@ -15,6 +15,10 @@ class ScheduleProductPostRequest extends FormRequest
         if ($this->has('Id_product') && ! $this->has('product_id')) {
             $this->merge(['product_id' => $this->input('Id_product')]);
         }
+
+        if (! $this->has('post_to')) {
+            $this->merge(['post_to' => 'marketplace']);
+        }
     }
 
     public function authorize(): bool
@@ -28,7 +32,7 @@ class ScheduleProductPostRequest extends FormRequest
             'product_id' => ['required', 'exists:products,id'],
             'scheduled_date' => ['required', 'date', 'date_format:Y-m-d', 'after_or_equal:today'],
             'scheduled_time' => ['required', 'date_format:H:i'],
-            'post_to' => ['required', 'in:marketplace,user_account'],
+            'post_to' => ['sometimes', 'in:marketplace,user_account'],
             'social_account_id' => ['required_if:post_to,user_account', 'exists:social_accounts,id'],
             'caption' => ['nullable', 'string', 'max:1000'],
         ];

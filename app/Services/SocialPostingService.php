@@ -8,6 +8,7 @@ use App\Models\SharedProduct;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 
 class SocialPostingService
@@ -112,10 +113,8 @@ class SocialPostingService
     {
         $this->assertProductOwnership($user, $product);
 
-        // Get marketplace account or user account
         $account = $this->getTargetAccount($user, $data);
 
-        // Create social post (draft status)
         $post = SocialPost::create([
             'user_id' => $user->id,
             'product_id' => $product->id,
@@ -131,10 +130,8 @@ class SocialPostingService
             'status' => 'queued',
         ]);
 
-        // Calculate scheduled datetime
         $scheduledDatetime = \Carbon\Carbon::parse($data['scheduled_date'].' '.$data['scheduled_time']);
 
-        // Create scheduled post
         $scheduledPost = \App\Models\ScheduledPost::create([
             'social_post_id' => $post->id,
             'scheduled_for' => $scheduledDatetime,
@@ -146,17 +143,29 @@ class SocialPostingService
 
     private function getTargetAccount(User $user, array $data): SocialAccount
     {
-        if ($data['post_to'] === 'user_account') {
+        if (($data['post_to'] ?? 'marketplace') === 'user_account') {
             $account = SocialAccount::findOrFail($data['social_account_id']);
             $this->assertAccountOwnership($user, $account);
             return $account;
         }
 
-        // For marketplace, get or create marketplace account
-        $account = SocialAccount::where('platform', 'facebook')
-            ->where('user_id', $user->id)
-            ->where('provider_account_name', 'like', '%marketplace%')
-            ->firstOrFail();
+        $accountId = config('services.facebook.marketplace_social_account_id');
+
+        if (! $accountId) {
+            throw ValidationException::withMessages([
+                'post_to' => ['Marketplace Facebook account is not configured.'],
+            ]);
+        }
+
+        try {
+            $account = SocialAccount::whereKey($accountId)
+                ->where('platform', 'facebook')
+                ->firstOrFail();
+        } catch (ModelNotFoundException) {
+            throw ValidationException::withMessages([
+                'post_to' => ['Configured marketplace Facebook account was not found.'],
+            ]);
+        }
 
         if ($account->status !== 'active') {
             throw ValidationException::withMessages([
