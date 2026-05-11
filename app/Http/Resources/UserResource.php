@@ -15,7 +15,8 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'status' => $this->status,
-            'role' => $this->role,
+            // Only expose role to admins or the user themself
+            'role' => ($request->user() && ($request->user()->role === 'admin' || $request->user()->is($this->resource))) ? $this->role : null,
             'email_verified_at' => $this->email_verified_at,
             'phone_verified_at' => $this->phone_verified_at,
             'last_login_at' => $this->last_login_at,
