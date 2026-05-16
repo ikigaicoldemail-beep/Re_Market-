@@ -9,6 +9,7 @@ use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class SocialPostingService
@@ -26,12 +27,14 @@ class SocialPostingService
             'social_account_id' => $account->id,
             'platform' => $account->platform,
             'caption' => $data['caption'] ?? $this->defaultCaption($product),
-            'media_payload' => [
-                'image' => $product->image,
-                'title' => $product->title,
-                'price_amount' => $product->price_amount,
-                'currency' => $product->currency,
-            ],
+            'media_payload' => array_merge(
+                $this->resolveImagePayload($product),
+                [
+                    'title' => $product->title,
+                    'price_amount' => $product->price_amount,
+                    'currency' => $product->currency,
+                ]
+            ),
             'status' => ($data['publish_now'] ?? false) ? 'queued' : 'draft',
         ]);
 
@@ -121,12 +124,14 @@ class SocialPostingService
             'social_account_id' => $account->id,
             'platform' => $account->platform,
             'caption' => $data['caption'] ?? $this->defaultCaption($product),
-            'media_payload' => [
-                'image' => $product->image,
-                'title' => $product->title,
-                'price_amount' => $product->price_amount,
-                'currency' => $product->currency,
-            ],
+            'media_payload' => array_merge(
+                $this->resolveImagePayload($product),
+                [
+                    'title' => $product->title,
+                    'price_amount' => $product->price_amount,
+                    'currency' => $product->currency,
+                ]
+            ),
             'status' => 'queued',
         ]);
 
@@ -179,5 +184,34 @@ class SocialPostingService
     private function defaultCaption(Product $product): string
     {
         return "{$product->title} - {$product->currency} {$product->price_amount}";
+    }
+
+    private function resolveImagePayload(Product $product): array
+    {
+        $primary = $product->images()
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->first();
+
+        $path = $primary?->path ?? $product->image;
+        $disk = $primary?->disk ?? ($path ? 'product-images' : null);
+
+        if (! $path || ! $disk) {
+            return [
+                'image' => null,
+                'image_url' => null,
+                'image_path' => null,
+                'image_disk' => null,
+            ];
+        }
+
+        $url = Storage::disk($disk)->url($path);
+
+        return [
+            'image' => $url,
+            'image_url' => $url,
+            'image_path' => $path,
+            'image_disk' => $disk,
+        ];
     }
 }

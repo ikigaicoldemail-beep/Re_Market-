@@ -1,0 +1,101 @@
+@extends('layouts.app')
+
+@section('title', 'My Wishlist')
+
+@section('content')
+@include('components.auth-guard')
+@include('components.toast')
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="wishlistPage()" x-init="fetch">
+    <h1 class="text-2xl font-semibold text-gray-900 mb-6">My Wishlist</h1>
+
+    <div x-show="loading" class="text-center py-20 text-gray-500">Loading...</div>
+
+    <div x-show="!loading && products.length === 0" class="text-center py-20 bg-white rounded-xl border border-gray-200" style="display:none">
+        <p class="text-gray-500 mb-4">Your wishlist is empty.</p>
+        <a href="/" class="inline-block bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700">Browse products</a>
+    </div>
+
+    <div x-show="!loading && products.length > 0" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" style="display:none">
+        <template x-for="product in products" :key="product.id">
+            <div class="bg-white rounded-xl border border-gray-200 overflow-hidden group">
+                <a :href="'/products/' + product.id" class="block">
+                    <div class="aspect-square bg-gray-100 overflow-hidden">
+                        <img :src="primaryImage(product)" :alt="product.title"
+                            onerror="this.src='https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image'"
+                            class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-medium text-gray-900 text-sm line-clamp-2 mb-1" x-text="product.title"></h3>
+                        <p class="text-indigo-600 font-semibold" x-text="formatPrice(product.price_amount, product.currency)"></p>
+                    </div>
+                </a>
+                <div class="p-3 pt-0 flex gap-2">
+                    <button @click="addToCart(product)" :disabled="busy === product.id"
+                        class="flex-1 bg-indigo-600 text-white text-xs py-2 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50">
+                        Add to cart
+                    </button>
+                    <button @click="remove(product)" :disabled="busy === product.id"
+                        class="px-3 py-2 border border-gray-300 rounded-lg text-xs text-red-600 hover:bg-red-50">
+                        Remove
+                    </button>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    function wishlistPage() {
+        return {
+            products: [],
+            loading: true,
+            busy: null,
+            primaryImage(product) {
+                if (product.images && product.images.length > 0) {
+                    const primary = product.images.find(i => i.is_primary) || product.images[0];
+                    return primary.url;
+                }
+                return 'https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image';
+            },
+            async fetch() {
+                this.loading = true;
+                try {
+                    const { data } = await window.api.get('/wishlist');
+                    this.products = data.products || [];
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                } finally {
+                    this.loading = false;
+                }
+            },
+            async addToCart(product) {
+                this.busy = product.id;
+                try {
+                    await window.api.post('/cart/items', { product_id: product.id, quantity: 1 });
+                    await Alpine.store('cart').refresh();
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Added to cart!' } }));
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                } finally {
+                    this.busy = null;
+                }
+            },
+            async remove(product) {
+                this.busy = product.id;
+                try {
+                    await window.api.delete('/wishlist/' + product.id);
+                    this.products = this.products.filter(p => p.id !== product.id);
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'info', message: 'Removed from wishlist.' } }));
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                } finally {
+                    this.busy = null;
+                }
+            },
+        };
+    }
+</script>
+@endpush
+@endsection

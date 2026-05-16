@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\ScheduledPostController;
 use App\Http\Controllers\Api\V1\SocialAccountController;
 use App\Http\Controllers\Api\V1\SocialPostController;
+use App\Http\Controllers\SocialOAuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('throttle:social')->group(function () {
@@ -10,6 +11,8 @@ Route::middleware('throttle:social')->group(function () {
 
     Route::get('/social/accounts', [SocialAccountController::class, 'index']);
     Route::post('/social/accounts', [SocialAccountController::class, 'store']);
+    Route::post('/social/{provider}/authorize', [SocialOAuthController::class, 'buildAuthorizeUrl'])
+        ->where('provider', 'facebook|tiktok');
     Route::delete('/social/accounts/{socialAccount}', [SocialAccountController::class, 'destroy']);
 
     Route::get('/social/posts', [SocialPostController::class, 'index']);

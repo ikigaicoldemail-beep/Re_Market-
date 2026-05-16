@@ -16,7 +16,7 @@ class StoreController extends Controller
 
     public function myStore(Request $request): JsonResponse
     {
-        $store = $request->user()->store;
+        $store = $request->user()->stores()->latest('id')->first();
 
         if (! $store) {
             return response()->json([

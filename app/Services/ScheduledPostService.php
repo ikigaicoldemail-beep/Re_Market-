@@ -17,7 +17,7 @@ class ScheduledPostService
         return ScheduledPost::query()
             ->whereHas('socialPost', fn ($query) => $query->where('user_id', $user->id))
             ->with(['socialPost.product.images', 'socialPost.socialAccount'])
-            ->latest('scheduled_for')
+            ->orderBy('scheduled_for')
             ->paginate(15);
     }
 

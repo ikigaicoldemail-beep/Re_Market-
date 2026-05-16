@@ -7,6 +7,7 @@ use App\Models\Conversation;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -83,13 +84,29 @@ class ChatService
             ->paginate(30);
     }
 
-    public function sendMessage(User $user, Conversation $conversation, array $data): ChatMessage
+    public function sendMessage(User $user, Conversation $conversation, array $data, ?UploadedFile $attachment = null): ChatMessage
     {
-        return DB::transaction(function () use ($user, $conversation, $data) {
+        $attachmentPath = null;
+        if ($attachment) {
+            $attachmentPath = $attachment->store('chat-attachments/'.$conversation->id, 'public');
+        }
+
+        $type = $data['type'] ?? null;
+        if (! $type) {
+            $type = $attachmentPath ? 'image' : 'text';
+        }
+
+        $body = $data['body'] ?? null;
+        if (! $body) {
+            $body = $attachmentPath ? '[image]' : '';
+        }
+
+        return DB::transaction(function () use ($user, $conversation, $type, $body, $attachmentPath) {
             $message = $conversation->messages()->create([
                 'sender_id' => $user->id,
-                'type' => $data['type'] ?? 'text',
-                'body' => $data['body'],
+                'type' => $type,
+                'body' => $body,
+                'attachment_path' => $attachmentPath,
                 'sent_at' => now(),
             ]);
 

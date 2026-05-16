@@ -11,6 +11,7 @@ class ProductResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'user_id' => $this->user_id,
             'store_id' => $this->store_id,
             'category_id' => $this->category_id,
             'product_condition_id' => $this->product_condition_id,
@@ -29,6 +30,7 @@ class ProductResource extends JsonResource
             'visibility' => $this->visibility,
             'allow_offers' => $this->allow_offers,
             'schedule_at' => $this->schedule_at,
+            'auto_post' => $this->auto_post,
             'published_at' => $this->published_at,
             'similarity_score' => $this->when(isset($this->similarity_score), $this->similarity_score),
             'images' => ProductImageResource::collection($this->whenLoaded('images')),
