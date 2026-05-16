@@ -44,6 +44,10 @@ class ProductController extends Controller
     {
         $product = $this->productService->create($request->user(), $request->validated());
 
+        if ($request->hasFile('images')) {
+            $product = $this->productService->uploadImages($product, $request->file('images'));
+        }
+
         return response()->json([
             'message' => 'Product created successfully.',
             'product' => new ProductResource($product),

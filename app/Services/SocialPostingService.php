@@ -8,6 +8,8 @@ use App\Models\SharedProduct;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class SocialPostingService
@@ -25,12 +27,14 @@ class SocialPostingService
             'social_account_id' => $account->id,
             'platform' => $account->platform,
             'caption' => $data['caption'] ?? $this->defaultCaption($product),
-            'media_payload' => [
-                'image' => $product->image,
-                'title' => $product->title,
-                'price_amount' => $product->price_amount,
-                'currency' => $product->currency,
-            ],
+            'media_payload' => array_merge(
+                $this->resolveImagePayload($product),
+                [
+                    'title' => $product->title,
+                    'price_amount' => $product->price_amount,
+                    'currency' => $product->currency,
+                ]
+            ),
             'status' => ($data['publish_now'] ?? false) ? 'queued' : 'draft',
         ]);
 
@@ -112,29 +116,27 @@ class SocialPostingService
     {
         $this->assertProductOwnership($user, $product);
 
-        // Get marketplace account or user account
         $account = $this->getTargetAccount($user, $data);
 
-        // Create social post (draft status)
         $post = SocialPost::create([
             'user_id' => $user->id,
             'product_id' => $product->id,
             'social_account_id' => $account->id,
             'platform' => $account->platform,
             'caption' => $data['caption'] ?? $this->defaultCaption($product),
-            'media_payload' => [
-                'image' => $product->image,
-                'title' => $product->title,
-                'price_amount' => $product->price_amount,
-                'currency' => $product->currency,
-            ],
+            'media_payload' => array_merge(
+                $this->resolveImagePayload($product),
+                [
+                    'title' => $product->title,
+                    'price_amount' => $product->price_amount,
+                    'currency' => $product->currency,
+                ]
+            ),
             'status' => 'queued',
         ]);
 
-        // Calculate scheduled datetime
         $scheduledDatetime = \Carbon\Carbon::parse($data['scheduled_date'].' '.$data['scheduled_time']);
 
-        // Create scheduled post
         $scheduledPost = \App\Models\ScheduledPost::create([
             'social_post_id' => $post->id,
             'scheduled_for' => $scheduledDatetime,
@@ -146,17 +148,29 @@ class SocialPostingService
 
     private function getTargetAccount(User $user, array $data): SocialAccount
     {
-        if ($data['post_to'] === 'user_account') {
+        if (($data['post_to'] ?? 'marketplace') === 'user_account') {
             $account = SocialAccount::findOrFail($data['social_account_id']);
             $this->assertAccountOwnership($user, $account);
             return $account;
         }
 
-        // For marketplace, get or create marketplace account
-        $account = SocialAccount::where('platform', 'facebook')
-            ->where('user_id', $user->id)
-            ->where('provider_account_name', 'like', '%marketplace%')
-            ->firstOrFail();
+        $accountId = config('services.facebook.marketplace_social_account_id');
+
+        if (! $accountId) {
+            throw ValidationException::withMessages([
+                'post_to' => ['Marketplace Facebook account is not configured.'],
+            ]);
+        }
+
+        try {
+            $account = SocialAccount::whereKey($accountId)
+                ->where('platform', 'facebook')
+                ->firstOrFail();
+        } catch (ModelNotFoundException) {
+            throw ValidationException::withMessages([
+                'post_to' => ['Configured marketplace Facebook account was not found.'],
+            ]);
+        }
 
         if ($account->status !== 'active') {
             throw ValidationException::withMessages([
@@ -170,5 +184,34 @@ class SocialPostingService
     private function defaultCaption(Product $product): string
     {
         return "{$product->title} - {$product->currency} {$product->price_amount}";
+    }
+
+    private function resolveImagePayload(Product $product): array
+    {
+        $primary = $product->images()
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->first();
+
+        $path = $primary?->path ?? $product->image;
+        $disk = $primary?->disk ?? ($path ? 'product-images' : null);
+
+        if (! $path || ! $disk) {
+            return [
+                'image' => null,
+                'image_url' => null,
+                'image_path' => null,
+                'image_disk' => null,
+            ];
+        }
+
+        $url = Storage::disk($disk)->url($path);
+
+        return [
+            'image' => $url,
+            'image_url' => $url,
+            'image_path' => $path,
+            'image_disk' => $disk,
+        ];
     }
 }

@@ -33,6 +33,8 @@ class StoreProductRequest extends FormRequest
             'allow_offers' => ['nullable', 'boolean'],
             'schedule_at' => ['nullable', 'date'],
             'auto_post' => ['nullable', 'string', 'max:50'],
+            'images' => ['sometimes', 'array', 'max:10'],
+            'images.*' => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];
     }
 }

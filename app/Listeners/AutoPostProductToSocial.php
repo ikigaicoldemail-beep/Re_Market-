@@ -6,6 +6,7 @@ use App\Events\ProductCreated;
 use App\Jobs\PublishSocialPostJob;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
+use Illuminate\Support\Facades\Storage;
 
 class AutoPostProductToSocial
 {
@@ -47,10 +48,15 @@ class AutoPostProductToSocial
                 continue;
             }
 
-            // Get the first product image
-            $primaryImage = $product->images()->first();
+            $primaryImage = $product->images()
+                ->orderByDesc('is_primary')
+                ->orderBy('sort_order')
+                ->first();
 
-            // Create the social post
+            $imagePath = $primaryImage?->path ?? $product->image;
+            $imageDisk = $primaryImage?->disk ?? ($imagePath ? 'product-images' : null);
+            $imageUrl = ($imagePath && $imageDisk) ? Storage::disk($imageDisk)->url($imagePath) : null;
+
             $post = SocialPost::create([
                 'user_id' => $product->user_id,
                 'product_id' => $product->id,
@@ -58,7 +64,10 @@ class AutoPostProductToSocial
                 'platform' => $platform,
                 'caption' => "{$product->title} - {$product->currency} {$product->price_amount}",
                 'media_payload' => [
-                    'image' => $primaryImage?->path,
+                    'image' => $imageUrl,
+                    'image_url' => $imageUrl,
+                    'image_path' => $imagePath,
+                    'image_disk' => $imageDisk,
                     'title' => $product->title,
                     'description' => $product->description,
                     'price_amount' => $product->price_amount,

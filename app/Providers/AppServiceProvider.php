@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\AiImageEmbeddingClientInterface;
 use App\Integrations\Ai\FakeImageEmbeddingClient;
+use App\Integrations\Ai\HuggingFaceImageEmbeddingClient;
 use App\Integrations\Social\FacebookSocialClient;
 use App\Integrations\Social\TikTokSocialClient;
 use App\Services\SocialPlatformManager;
@@ -19,7 +20,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(AiImageEmbeddingClientInterface::class, FakeImageEmbeddingClient::class);
+        $this->app->bind(AiImageEmbeddingClientInterface::class, function () {
+            $provider = config('services.ai_similarity.provider', 'fake-image-embedding');
+
+            return match ($provider) {
+                'huggingface-clip', 'huggingface' => $this->app->make(HuggingFaceImageEmbeddingClient::class),
+                default => $this->app->make(FakeImageEmbeddingClient::class),
+            };
+        });
 
         $this->app->singleton(FacebookSocialClient::class);
         $this->app->singleton(TikTokSocialClient::class);
