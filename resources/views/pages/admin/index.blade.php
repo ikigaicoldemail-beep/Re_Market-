@@ -17,7 +17,7 @@
         <h1 class="text-2xl font-semibold text-gray-900">Admin Dashboard</h1>
         <p class="text-sm text-gray-500 mt-1">Manage marketplace users, stores, products, and orders.</p>
 
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-8">
             <a href="/admin/users" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition">
                 <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mb-3">
                     <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -45,6 +45,13 @@
                 </div>
                 <p class="font-semibold text-gray-900">Orders</p>
                 <p class="text-xs text-gray-500 mt-1">Track and update fulfillment</p>
+            </a>
+            <a href="/admin/categories" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition">
+                <div class="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                </div>
+                <p class="font-semibold text-gray-900">Categories</p>
+                <p class="text-xs text-gray-500 mt-1">Manage marketplace categories &amp; logos</p>
             </a>
         </div>
     </div>

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\ProductCreated;
 use App\Jobs\GenerateProductImageEmbeddingJob;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
@@ -36,7 +37,9 @@ class ProductService
         }
 
         if (! empty($filters['category_id'])) {
-            $query->where('category_id', $filters['category_id']);
+            $catId = (int) $filters['category_id'];
+            $childIds = Category::where('parent_id', $catId)->pluck('id')->all();
+            $query->whereIn('category_id', array_merge([$catId], $childIds));
         }
 
         if (! empty($filters['product_condition_id'])) {

@@ -18,4 +18,9 @@ Route::middleware('role:admin')->prefix('admin')->group(function () {
 
     Route::get('/orders', [AdminController::class, 'orders']);
     Route::patch('/orders/{order}', [AdminController::class, 'updateOrder']);
+
+    Route::get('/categories', [AdminController::class, 'categories']);
+    Route::post('/categories', [AdminController::class, 'storeCategory']);
+    Route::post('/categories/{category}', [AdminController::class, 'updateCategory']);
+    Route::delete('/categories/{category}', [AdminController::class, 'destroyCategory']);
 });

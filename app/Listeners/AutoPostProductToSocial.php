@@ -6,6 +6,7 @@ use App\Events\ProductCreated;
 use App\Jobs\PublishSocialPostJob;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
+use App\Services\SocialPostingService;
 use Illuminate\Support\Facades\Storage;
 
 class AutoPostProductToSocial
@@ -36,14 +37,9 @@ class AutoPostProductToSocial
 
         // Post to each platform
         foreach ($platforms as $platform) {
-            // Find the user's first active connected account for this platform
-            $account = SocialAccount::query()
-                ->where('user_id', $product->user_id)
-                ->where('platform', $platform)
-                ->where('status', 'active')
-                ->first();
+            $account = $this->resolveAccount($platform, $product->user_id);
 
-            // Skip if no connected account for this platform
+            // Skip if no usable account for this platform
             if (! $account) {
                 continue;
             }
@@ -62,7 +58,7 @@ class AutoPostProductToSocial
                 'product_id' => $product->id,
                 'social_account_id' => $account->id,
                 'platform' => $platform,
-                'caption' => "{$product->title} - {$product->currency} {$product->price_amount}",
+                'caption' => SocialPostingService::defaultCaption($product),
                 'media_payload' => [
                     'image' => $imageUrl,
                     'image_url' => $imageUrl,
@@ -77,8 +73,30 @@ class AutoPostProductToSocial
                 'status' => 'queued',
             ]);
 
-            // Dispatch the job to publish the post
-            PublishSocialPostJob::dispatch($post->id);
+            // Delay so the follow-up POST /products/{id}/images request has time
+            // to attach images before the worker reads the product.
+            PublishSocialPostJob::dispatch($post->id)->delay(now()->addSeconds(15));
         }
+    }
+
+    private function resolveAccount(string $platform, int $userId): ?SocialAccount
+    {
+        if ($platform === 'facebook') {
+            $marketplaceId = config('services.facebook.marketplace_social_account_id');
+
+            if ($marketplaceId) {
+                return SocialAccount::query()
+                    ->whereKey($marketplaceId)
+                    ->where('platform', 'facebook')
+                    ->where('status', 'active')
+                    ->first();
+            }
+        }
+
+        return SocialAccount::query()
+            ->where('user_id', $userId)
+            ->where('platform', $platform)
+            ->where('status', 'active')
+            ->first();
     }
 }

@@ -9,10 +9,7 @@ use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-<<<<<<< HEAD
 use Illuminate\Support\Facades\Storage;
-=======
->>>>>>> 7c87fd9d41490dec58712ced009ee2f239147138
 use Illuminate\Validation\ValidationException;
 
 class SocialPostingService
@@ -21,8 +18,13 @@ class SocialPostingService
 
     public function createPost(User $user, Product $product, SocialAccount $account, array $data): SocialPost
     {
-        $this->assertAccountOwnership($user, $account);
         $this->assertProductOwnership($user, $product);
+
+        if ($account->platform === 'facebook') {
+            $account = $this->resolveMarketplaceFacebookAccount();
+        } else {
+            $this->assertAccountOwnership($user, $account);
+        }
 
         $post = SocialPost::create([
             'user_id' => $user->id,
@@ -50,12 +52,26 @@ class SocialPostingService
 
     public function publish(SocialPost $post): SocialPost
     {
-        $post->loadMissing(['socialAccount', 'product']);
+        $post->loadMissing(['socialAccount', 'product.images']);
 
         if (! $post->socialAccount || $post->socialAccount->status !== 'active') {
             throw ValidationException::withMessages([
                 'social_account_id' => ['The social account is not active.'],
             ]);
+        }
+
+        // Auto-posts can be queued before the separate image-upload request
+        // finishes. Re-resolve the primary image now if the payload is missing it.
+        if ($post->product) {
+            $payload = $post->media_payload ?? [];
+            $hasImage = ! empty($payload['image_path']) && ! empty($payload['image_disk']);
+            if (! $hasImage) {
+                $refreshed = $this->resolveImagePayload($post->product);
+                if (! empty($refreshed['image_path'])) {
+                    $post->media_payload = array_merge($payload, $refreshed);
+                    $post->save();
+                }
+            }
         }
 
         $post->update(['status' => 'processing', 'error_message' => null]);
@@ -157,11 +173,16 @@ class SocialPostingService
             return $account;
         }
 
+        return $this->resolveMarketplaceFacebookAccount();
+    }
+
+    private function resolveMarketplaceFacebookAccount(): SocialAccount
+    {
         $accountId = config('services.facebook.marketplace_social_account_id');
 
         if (! $accountId) {
             throw ValidationException::withMessages([
-                'post_to' => ['Marketplace Facebook account is not configured.'],
+                'social_account_id' => ['Marketplace Facebook account is not configured.'],
             ]);
         }
 
@@ -171,22 +192,53 @@ class SocialPostingService
                 ->firstOrFail();
         } catch (ModelNotFoundException) {
             throw ValidationException::withMessages([
-                'post_to' => ['Configured marketplace Facebook account was not found.'],
+                'social_account_id' => ['Configured marketplace Facebook account was not found.'],
             ]);
         }
 
         if ($account->status !== 'active') {
             throw ValidationException::withMessages([
-                'post_to' => ['Marketplace account is not connected or active.'],
+                'social_account_id' => ['Marketplace account is not connected or active.'],
             ]);
         }
 
         return $account;
     }
 
-    private function defaultCaption(Product $product): string
+    public static function defaultCaption(Product $product): string
     {
-        return "{$product->title} - {$product->currency} {$product->price_amount}";
+        $lines = [$product->title];
+
+        if (! empty($product->description)) {
+            $lines[] = '';
+            $lines[] = $product->description;
+        }
+
+        $lines[] = '';
+        $lines[] = 'Price: '.$product->currency.' '.number_format((float) $product->price_amount, 2);
+
+        $condition = $product->condition?->name;
+        if ($condition) {
+            $lines[] = 'Condition: '.$condition;
+        }
+
+        $location = collect([$product->location_city, $product->location_state, $product->location_country_code])
+            ->filter()
+            ->implode(', ');
+        if ($location !== '') {
+            $lines[] = 'Location: '.$location;
+        }
+
+        if ($product->allow_offers) {
+            $lines[] = 'Open to offers';
+        }
+
+        $base = rtrim(config('app.frontend_url', config('app.url')), '/');
+        if ($base !== '') {
+            $lines[] = 'View: '.$base.'/products/'.$product->id;
+        }
+
+        return implode("\n", $lines);
     }
 
     private function resolveImagePayload(Product $product): array

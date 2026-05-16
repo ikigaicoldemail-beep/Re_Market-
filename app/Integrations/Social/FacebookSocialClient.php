@@ -5,6 +5,7 @@ namespace App\Integrations\Social;
 use App\Contracts\SocialPlatformClientInterface;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
+use Composer\CaBundle\CaBundle;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Storage;
@@ -17,9 +18,13 @@ class FacebookSocialClient implements SocialPlatformClientInterface
 
     public function __construct()
     {
-        $this->httpClient = new Client([
-            'timeout' => 30,
-        ]);
+        $config = ['timeout' => 30];
+
+        if (class_exists(CaBundle::class)) {
+            $config['verify'] = CaBundle::getBundledCaBundlePath();
+        }
+
+        $this->httpClient = new Client($config);
     }
 
     public function platform(): string
