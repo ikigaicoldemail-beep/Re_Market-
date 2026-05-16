@@ -39,7 +39,17 @@
       "PowerShell($token = \"EAAZAnS8D2LC0BRdgSOnydBn8DqajJZACBaf6656XabDrTq1gk6gfYZBUiVInles8R0j7HJYrmmmJC8xpSSt101lDrwGpNTTBtTkJil97WDIGa6iaqqnbtPv1FzJHukUMkp5ZAwlnNy6dTpOYtPL2hbjjXssk17oKFZAOEDdDVctM0UdqOlZA3obZCySl3kNg4zaJSL2Lpvt31OcKPelqZCdZArV6B59ZBRjzLjeZCVsOfsZD\"; Write-Output \"--- basic page read ---\"; try { Invoke-RestMethod -Uri \"https://graph.facebook.com/v22.0/1031370136736152?fields=id,name,category,fan_count&access_token=$token\" -ErrorAction Stop | ConvertTo-Json -Depth 5 } catch { try { $err = $_.ErrorDetails.Message; Write-Output $err } catch { Write-Output $_.Exception.Message } }; Write-Output \"\"; Write-Output \"--- recent posts \\(proof token has read access\\) ---\"; try { \\(Invoke-RestMethod -Uri \"https://graph.facebook.com/v22.0/1031370136736152/posts?limit=2&access_token=$token\" -ErrorAction Stop\\).data | ConvertTo-Json -Depth 4 } catch { try { Write-Output $_.ErrorDetails.Message } catch { Write-Output $_.Exception.Message } })",
       "PowerShell($mysql = 'C:\\\\Program Files\\\\MySQL\\\\MySQL Workbench 8.0 CE\\\\mysql.exe' ; foreach \\($pw in @\\('', 'root', 'password', '1234', 'admin'\\)\\) { $arg = if \\($pw -eq ''\\) { '--password=' } else { \"--password=$pw\" } ; $out = & $mysql -h 127.0.0.1 -P 3307 -u root $arg -e \"SELECT 'ok' AS r;\" 2>&1 ; if \\($LASTEXITCODE -eq 0\\) { \"PW='$pw' => OK\"; break } else { \"PW='$pw' => denied\" } })",
       "PowerShell(php -r \"require 'vendor/autoload.php'; $app = require 'bootstrap/app.php'; $app->boot\\(\\); echo 'app.timezone=' . config\\('app.timezone'\\) . PHP_EOL; echo 'php default=' . date_default_timezone_get\\(\\) . PHP_EOL; $c = \\\\Carbon\\\\Carbon::parse\\('2026-05-17 10:40'\\); echo 'parsed=' . $c->toIso8601String\\(\\) . PHP_EOL; echo 'toJson=' . $c->toJSON\\(\\) . PHP_EOL;\")",
-      "PowerShell(Remove-Item *)"
+      "PowerShell(Remove-Item *)",
+      "Bash(curl *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Y3S2\\\\WCT\\\\second-hand-Ecommers\" -Recurse -Name)",
+      "Bash(Select-Object -First 50)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Y3S2\\\\WCT\\\\second-hand-Ecommers\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(xargs grep -l \"category\\\\|Category\")",
+      "Bash(xargs grep -l \"categor\")",
+      "Bash(grep -nA2 \"product-images\\\\|profile-images\" D:/Y3S2/WCT/second-hand-Ecommers/config/filesystems.php)",
+      "WebFetch(domain:www.khmer24.com)",
+      "WebSearch"
     ]
   }
 }

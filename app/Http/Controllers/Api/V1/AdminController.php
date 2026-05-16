@@ -3,16 +3,20 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CategoryResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\StoreResource;
 use App\Http\Resources\UserResource;
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
@@ -272,6 +276,122 @@ class AdminController extends Controller
             'message' => 'Order updated successfully.',
             'order' => new OrderResource($order->fresh(['buyer.profile', 'address', 'store', 'items', 'payments'])),
         ]);
+    }
+
+    public function categories(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+        ]);
+
+        $categories = Category::query()
+            ->when($filters['search'] ?? null, function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query
+                        ->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('slug', 'like', '%'.$search.'%');
+                });
+            })
+            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'categories' => CategoryResource::collection($categories),
+        ]);
+    }
+
+    public function storeCategory(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'description' => ['nullable', 'string'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'sort_order' => ['nullable', 'integer'],
+            'logo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+        ]);
+
+        $payload = [
+            'name' => $data['name'],
+            'parent_id' => $data['parent_id'] ?? null,
+            'description' => $data['description'] ?? null,
+            'status' => $data['status'] ?? 'active',
+            'sort_order' => $data['sort_order'] ?? 0,
+            'slug' => $this->uniqueCategorySlug($data['name']),
+        ];
+
+        if ($request->hasFile('logo')) {
+            $payload['logo_path'] = $request->file('logo')->store('', 'category-logos');
+            $payload['logo_disk'] = 'category-logos';
+        }
+
+        $category = Category::create($payload);
+
+        return response()->json([
+            'message' => 'Category created successfully.',
+            'category' => new CategoryResource($category),
+        ], 201);
+    }
+
+    public function updateCategory(Request $request, Category $category): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'parent_id' => ['nullable', 'integer', 'exists:categories,id', Rule::notIn([$category->id])],
+            'description' => ['nullable', 'string'],
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
+            'sort_order' => ['sometimes', 'integer'],
+            'logo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+            'remove_logo' => ['sometimes', 'boolean'],
+        ]);
+
+        $category->fill(collect($data)->except(['logo', 'remove_logo'])->all());
+
+        if ($request->hasFile('logo')) {
+            if ($category->logo_path && $category->logo_disk) {
+                Storage::disk($category->logo_disk)->delete($category->logo_path);
+            }
+            $category->logo_path = $request->file('logo')->store('', 'category-logos');
+            $category->logo_disk = 'category-logos';
+        } elseif ($request->boolean('remove_logo') && $category->logo_path && $category->logo_disk) {
+            Storage::disk($category->logo_disk)->delete($category->logo_path);
+            $category->logo_path = null;
+            $category->logo_disk = null;
+        }
+
+        $category->save();
+
+        return response()->json([
+            'message' => 'Category updated successfully.',
+            'category' => new CategoryResource($category->fresh()),
+        ]);
+    }
+
+    public function destroyCategory(Category $category): JsonResponse
+    {
+        if ($category->logo_path && $category->logo_disk) {
+            Storage::disk($category->logo_disk)->delete($category->logo_path);
+        }
+
+        $category->delete();
+
+        return response()->json([
+            'message' => 'Category deleted successfully.',
+        ]);
+    }
+
+    private function uniqueCategorySlug(string $name): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+        $i = 2;
+        while (Category::where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$i++;
+        }
+        return $slug;
     }
 
     private function paginationMeta($paginator): array

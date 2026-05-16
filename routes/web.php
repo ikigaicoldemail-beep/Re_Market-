@@ -65,3 +65,4 @@ Route::view('/admin/users', 'pages.admin.users')->name('admin.users');
 Route::view('/admin/stores', 'pages.admin.stores')->name('admin.stores');
 Route::view('/admin/products', 'pages.admin.products')->name('admin.products');
 Route::view('/admin/orders', 'pages.admin.orders')->name('admin.orders');
+Route::view('/admin/categories', 'pages.admin.categories')->name('admin.categories');

@@ -6,6 +6,72 @@
 @include('components.toast')
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="productList()" x-init="init">
+    {{-- Top-level category cards (khmer24-style) --}}
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Categories</h2>
+            <button x-show="filters.category_id" @click="clearCategory()"
+                class="text-xs text-indigo-600 hover:text-indigo-700 font-medium" style="display:none">
+                Show all categories
+            </button>
+        </div>
+        <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+            <template x-for="cat in parentCategories" :key="cat.id">
+                <button @click="selectParent(cat.id)"
+                    :class="filters.category_id == cat.id ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'hover:bg-gray-50'"
+                    class="shrink-0 w-24 text-center p-2 rounded-xl border border-gray-200 bg-white transition">
+                    <template x-if="cat.logo_url">
+                        <img :src="cat.logo_url" :alt="cat.name" class="w-14 h-14 mx-auto rounded-full object-cover bg-gray-100">
+                    </template>
+                    <template x-if="!cat.logo_url">
+                        <div class="w-14 h-14 mx-auto rounded-full bg-gradient-to-br from-indigo-100 to-pink-100 flex items-center justify-center text-indigo-600 font-semibold"
+                             x-text="cat.name.charAt(0)"></div>
+                    </template>
+                    <p class="text-xs font-medium text-gray-700 mt-1 truncate" x-text="cat.name"></p>
+                </button>
+            </template>
+        </div>
+
+        {{-- Child chip row, visible only when a parent is selected --}}
+        <div x-show="childChips.length > 0" class="flex flex-wrap gap-2 mt-3" style="display:none">
+            <button @click="selectChild('')"
+                :class="!filters.sub_category_id ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                class="text-xs px-3 py-1.5 rounded-full border border-gray-200 font-medium transition">
+                All in <span x-text="selectedParentName()"></span>
+            </button>
+            <template x-for="child in childChips" :key="child.id">
+                <button @click="selectChild(child.id)"
+                    :class="filters.sub_category_id == child.id ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                    class="text-xs px-3 py-1.5 rounded-full border border-gray-200 font-medium transition"
+                    x-text="child.name"></button>
+            </template>
+        </div>
+    </div>
+
+    {{-- Province / city filter --}}
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Province</h2>
+            <button x-show="filters.location_city" @click="selectCity('')"
+                class="text-xs text-indigo-600 hover:text-indigo-700 font-medium" style="display:none">
+                All provinces
+            </button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button @click="selectCity('')"
+                :class="!filters.location_city ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                class="text-xs px-3 py-1.5 rounded-full border border-gray-200 font-medium transition">
+                All
+            </button>
+            <template x-for="city in provinces" :key="city">
+                <button @click="selectCity(city)"
+                    :class="filters.location_city === city ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                    class="text-xs px-3 py-1.5 rounded-full border border-gray-200 font-medium transition"
+                    x-text="city"></button>
+            </template>
+        </div>
+    </div>
+
     <div class="flex flex-col lg:flex-row gap-6">
         {{-- Filters Sidebar --}}
         <aside class="lg:w-64 shrink-0">
@@ -17,17 +83,6 @@
                     <input type="text" x-model.debounce.400ms="filters.search" @input="resetAndFetch()"
                         placeholder="Title, description..."
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-
-                <div class="mb-5">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                    <select x-model="filters.category_id" @change="resetAndFetch()"
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">All categories</option>
-                        <template x-for="c in categories" :key="c.id">
-                            <option :value="c.id" x-text="c.name"></option>
-                        </template>
-                    </select>
                 </div>
 
                 <div class="mb-5">
@@ -131,17 +186,72 @@
             filters: {
                 search: '',
                 category_id: '',
+                sub_category_id: '',
                 product_condition_id: '',
+                location_city: '',
                 min_price: '',
                 max_price: '',
                 sort: 'latest',
                 page: 1,
             },
+            provinces: [
+                'Phnom Penh', 'Siem Reap', 'Battambang', 'Sihanoukville',
+                'Kandal', 'Kampong Cham', 'Kampot', 'Kep',
+            ],
             loading: false,
             async init() {
                 const params = new URLSearchParams(window.location.search);
                 if (params.get('search')) this.filters.search = params.get('search');
+                if (params.get('category')) this.filters.category_id = params.get('category');
+                if (params.get('sub')) this.filters.sub_category_id = params.get('sub');
+                if (params.get('city')) this.filters.location_city = params.get('city');
                 await Promise.all([this.fetchProducts(), this.fetchCategories(), this.fetchConditions()]);
+            },
+            get parentCategories() {
+                return this.categories.filter(c => !c.parent_id);
+            },
+            get childChips() {
+                const pid = parseInt(this.filters.category_id, 10);
+                if (!pid) return [];
+                return this.categories.filter(c => c.parent_id === pid);
+            },
+            selectedParentName() {
+                const id = parseInt(this.filters.category_id, 10);
+                const p = this.categories.find(c => c.id === id);
+                return p ? p.name : '';
+            },
+            selectParent(id) {
+                this.filters.category_id = (this.filters.category_id == id) ? '' : id;
+                this.filters.sub_category_id = '';
+                this.syncUrl();
+                this.resetAndFetch();
+            },
+            selectChild(id) {
+                this.filters.sub_category_id = id;
+                this.syncUrl();
+                this.resetAndFetch();
+            },
+            clearCategory() {
+                this.filters.category_id = '';
+                this.filters.sub_category_id = '';
+                this.syncUrl();
+                this.resetAndFetch();
+            },
+            selectCity(name) {
+                this.filters.location_city = name;
+                this.syncUrl();
+                this.resetAndFetch();
+            },
+            syncUrl() {
+                const p = new URLSearchParams(window.location.search);
+                if (this.filters.category_id) p.set('category', this.filters.category_id);
+                else p.delete('category');
+                if (this.filters.sub_category_id) p.set('sub', this.filters.sub_category_id);
+                else p.delete('sub');
+                if (this.filters.location_city) p.set('city', this.filters.location_city);
+                else p.delete('city');
+                const qs = p.toString();
+                window.history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
             },
             primaryImage(product) {
                 if (product.images && product.images.length > 0) {
@@ -167,8 +277,14 @@
                 try {
                     const params = {};
                     Object.entries(this.filters).forEach(([k, v]) => {
+                        if (k === 'sub_category_id') return; // handled below
                         if (v !== '' && v !== null && v !== undefined) params[k] = v;
                     });
+                    // If a sub-category chip is selected, narrow to that exact child;
+                    // otherwise leave the parent in place so children are included server-side.
+                    if (this.filters.sub_category_id) {
+                        params.category_id = this.filters.sub_category_id;
+                    }
                     const { data } = await window.api.get('/products', { params });
                     this.products = data.products || [];
                     this.meta = data.meta || this.meta;
@@ -189,9 +305,10 @@
             },
             reset() {
                 this.filters = {
-                    search: '', category_id: '', product_condition_id: '',
-                    min_price: '', max_price: '', sort: 'latest', page: 1,
+                    search: '', category_id: '', sub_category_id: '', product_condition_id: '',
+                    location_city: '', min_price: '', max_price: '', sort: 'latest', page: 1,
                 };
+                this.syncUrl();
                 this.fetchProducts();
             },
         };
