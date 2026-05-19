@@ -49,7 +49,17 @@
       "Bash(xargs grep -l \"categor\")",
       "Bash(grep -nA2 \"product-images\\\\|profile-images\" D:/Y3S2/WCT/second-hand-Ecommers/config/filesystems.php)",
       "WebFetch(domain:www.khmer24.com)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(composer show *)",
+      "Bash(composer require *)",
+      "Bash(BROADCAST_CONNECTION=log php artisan tinker '--execute= *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8080)",
+      "Bash(netsh interface *)",
+      "Bash(tasklist *)",
+      "Bash(findstr :8081)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
