@@ -12,7 +12,8 @@ class ProductImageResource extends JsonResource
         return [
             'id' => $this->id,
             'path' => $this->path,
-            'url' => $this->buildUrl($request),
+            'url' => $this->buildUrl($request, $this->path),
+            'urls' => $this->variantUrls($request),
             'disk' => $this->disk,
             'mime_type' => $this->mime_type,
             'file_size' => $this->file_size,
@@ -21,7 +22,27 @@ class ProductImageResource extends JsonResource
         ];
     }
 
-    private function buildUrl(Request $request): string
+    private function variantUrls(Request $request): array
+    {
+        $variants = $this->variants ?? [];
+
+        $out = [
+            'original' => $this->buildUrl($request, $this->path),
+        ];
+
+        foreach (['thumb', 'card', 'large'] as $size) {
+            if (! empty($variants[$size])) {
+                $out[$size] = $this->buildUrl($request, $variants[$size]);
+            }
+            if (! empty($variants[$size.'_webp'])) {
+                $out[$size.'_webp'] = $this->buildUrl($request, $variants[$size.'_webp']);
+            }
+        }
+
+        return $out;
+    }
+
+    private function buildUrl(Request $request, string $relativePath): string
     {
         $prefix = match ($this->disk) {
             'product-images' => '/storage/products/',
@@ -29,6 +50,6 @@ class ProductImageResource extends JsonResource
             default => '/storage/',
         };
 
-        return $request->getSchemeAndHttpHost().$prefix.ltrim((string) $this->path, '/');
+        return $request->getSchemeAndHttpHost().$prefix.ltrim($relativePath, '/');
     }
 }

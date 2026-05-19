@@ -18,7 +18,7 @@ class UpdateProductRequest extends FormRequest
 
         return [
             'store_id' => ['sometimes', 'integer', 'exists:stores,id'],
-            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'category_id' => ['sometimes', 'required', 'integer', 'exists:categories,id'],
             'product_condition_id' => ['nullable', 'integer', 'exists:product_conditions,id'],
             'title' => ['sometimes', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product)],

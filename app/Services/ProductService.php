@@ -17,19 +17,35 @@ use Illuminate\Validation\ValidationException;
 
 class ProductService
 {
+    public function __construct(
+        private readonly ImageVariantService $imageVariants = new ImageVariantService()
+    ) {}
+
     public function listPublic(array $filters): LengthAwarePaginator
     {
         $query = Product::query()
             ->with(['images', 'store', 'category', 'condition', 'user.profile'])
+            ->withCount(['reviews' => fn ($q) => $q->where('status', 'published')])
+            ->withAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'published')], 'rating')
             ->where('status', 'published')
             ->where('visibility', 'public');
 
         if (! empty($filters['search'])) {
-            $query->where(function ($builder) use ($filters) {
-                $builder
-                    ->where('title', 'like', '%'.$filters['search'].'%')
-                    ->orWhere('description', 'like', '%'.$filters['search'].'%');
-            });
+            $search = trim((string) $filters['search']);
+            if (mb_strlen($search) >= 3) {
+                // FULLTEXT BOOLEAN MODE with wildcard suffix on each token for prefix matching.
+                $tokens = preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY);
+                $expr = collect($tokens)
+                    ->map(fn ($t) => '+'.preg_replace('/[+\-><()~*"@]/u', '', $t).'*')
+                    ->implode(' ');
+                $query->whereRaw('MATCH(title, description) AGAINST(? IN BOOLEAN MODE)', [$expr]);
+            } else {
+                $query->where(function ($builder) use ($search) {
+                    $builder
+                        ->where('title', 'like', '%'.$search.'%')
+                        ->orWhere('description', 'like', '%'.$search.'%');
+                });
+            }
         }
 
         if (! empty($filters['store_id'])) {
@@ -81,6 +97,8 @@ class ProductService
     {
         return Product::query()
             ->with(['images', 'category', 'condition'])
+            ->withCount(['reviews' => fn ($q) => $q->where('status', 'published')])
+            ->withAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'published')], 'rating')
             ->where('store_id', $store->id)
             ->where('status', 'published')
             ->where('visibility', 'public')
@@ -189,6 +207,7 @@ class ProductService
         DB::transaction(function () use ($product) {
             foreach ($product->images as $image) {
                 Storage::disk($image->disk)->delete($image->path);
+                $this->imageVariants->delete($image->disk, $image->variants);
             }
 
             $product->delete();
@@ -211,9 +230,17 @@ class ProductService
 
                 $path = $image->store('', 'product-images');
 
+                try {
+                    $variants = $this->imageVariants->generateFromUpload($image, 'product-images', $path);
+                } catch (\Throwable $e) {
+                    report($e);
+                    $variants = null;
+                }
+
                 $productImage = $product->images()->create([
                     'path' => $path,
                     'disk' => 'product-images',
+                    'variants' => $variants,
                     'mime_type' => $image->getMimeType(),
                     'file_size' => $image->getSize(),
                     'sort_order' => $startingOrder + $index,

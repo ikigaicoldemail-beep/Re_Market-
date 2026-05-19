@@ -15,6 +15,7 @@ class ProductImage extends Model
         'product_id',
         'path',
         'disk',
+        'variants',
         'mime_type',
         'file_size',
         'sort_order',
@@ -26,6 +27,7 @@ class ProductImage extends Model
     {
         return [
             'is_primary' => 'boolean',
+            'variants' => 'array',
         ];
     }
 
