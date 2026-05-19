@@ -10,6 +10,7 @@ use App\Integrations\Social\TikTokSocialClient;
 use App\Services\SocialPlatformManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -42,6 +43,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // The default /broadcasting/auth route ships with ['web', 'auth']
+        // middleware, which doesn't fit our JWT-only stack. Re-register it
+        // under the JWT guard so Echo private-channel auth works.
+        Broadcast::routes(['middleware' => ['auth:api']]);
+
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute((int) env('API_RATE_LIMIT', 120))
                 ->by($request->user()?->id ?: $request->ip());
@@ -69,6 +75,12 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('ai', function (Request $request) {
             return Limit::perMinute((int) env('AI_RATE_LIMIT', 20))
+                ->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('report-submit', function (Request $request) {
+            // Spam-prevention: a user can submit at most N report submissions per hour.
+            return Limit::perHour((int) env('REPORT_RATE_LIMIT', 5))
                 ->by($request->user()?->id ?: $request->ip());
         });
     }

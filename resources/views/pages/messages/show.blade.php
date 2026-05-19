@@ -95,12 +95,37 @@
             lastMessageId: 0,
             pendingFile: null,
             pendingFilePreview: '',
+            channel: null,
+            realtimeActive: false,
             async init() {
                 const segments = window.location.pathname.split('/').filter(Boolean);
                 this.conversationId = parseInt(segments[segments.length - 1]);
                 await this.fetchAll();
-                this.pollHandle = setInterval(() => this.poll(), 5000);
-                window.addEventListener('beforeunload', () => clearInterval(this.pollHandle));
+                this.subscribeRealtime();
+                // Poll as a safety net. Aggressive 5s when realtime is off, gentle 30s when it's live.
+                this.pollHandle = setInterval(() => this.poll(), this.realtimeActive ? 30000 : 5000);
+                window.addEventListener('beforeunload', () => this.teardown());
+            },
+            subscribeRealtime() {
+                if (!window.realtime?.enabled()) return;
+                const ch = window.realtime.privateChannel('conversation.' + this.conversationId);
+                if (!ch) return;
+                this.channel = ch;
+                this.realtimeActive = true;
+                ch.listen('.message.sent', (payload) => this.handleIncoming(payload?.chat_message));
+            },
+            handleIncoming(msg) {
+                if (!msg || !msg.id) return;
+                if (this.messages.some(m => m.id === msg.id)) return; // dedupe
+                if (msg.id <= this.lastMessageId) return;
+                this.messages.push(msg);
+                this.lastMessageId = msg.id;
+                this.markSeen();
+                this.$nextTick(() => this.scrollToBottom());
+            },
+            teardown() {
+                if (this.pollHandle) clearInterval(this.pollHandle);
+                if (this.realtimeActive) window.realtime.leave('conversation.' + this.conversationId);
             },
             async fetchAll() {
                 this.loading = true;
