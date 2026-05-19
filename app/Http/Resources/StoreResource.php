@@ -9,6 +9,14 @@ class StoreResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $isFollowing = null;
+        if ($request->user()) {
+            $isFollowing = \DB::table('store_followers')
+                ->where('user_id', $request->user()->id)
+                ->where('store_id', $this->id)
+                ->exists();
+        }
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -22,6 +30,8 @@ class StoreResource extends JsonResource
             'address_line' => $this->address_line,
             'status' => $this->status,
             'is_verified' => $this->is_verified,
+            'followers_count' => (int) ($this->followers_count ?? 0),
+            'is_following' => $isFollowing,
             'published_at' => $this->published_at,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

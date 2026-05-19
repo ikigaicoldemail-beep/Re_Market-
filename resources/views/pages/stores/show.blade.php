@@ -17,11 +17,11 @@
         {{-- Store header --}}
         <div class="bg-gradient-to-br from-indigo-600 to-purple-600 text-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-                <div class="flex items-center gap-4">
-                    <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-3xl font-bold">
+                <div class="flex items-start gap-4 flex-wrap">
+                    <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-3xl font-bold shrink-0">
                         <span x-text="store?.name?.charAt(0)?.toUpperCase()"></span>
                     </div>
-                    <div>
+                    <div class="flex-1 min-w-0">
                         <h1 class="text-3xl font-semibold flex items-center gap-2">
                             <span x-text="store?.name"></span>
                             <svg x-show="store?.is_verified" class="w-5 h-5 text-blue-300" fill="currentColor" viewBox="0 0 20 20" style="display:none">
@@ -29,6 +29,17 @@
                             </svg>
                         </h1>
                         <p class="text-indigo-100 text-sm mt-1" x-text="[store?.city, store?.state, store?.country_code].filter(Boolean).join(', ')"></p>
+                        <p class="text-indigo-100 text-sm mt-1">
+                            <span class="font-semibold text-white" x-text="store?.followers_count ?? 0"></span> follower<span x-show="(store?.followers_count ?? 0) !== 1" style="display:none">s</span>
+                        </p>
+                    </div>
+                    <div x-show="canFollow" style="display:none">
+                        <button @click="toggleFollow()" :disabled="followBusy"
+                            :class="store?.is_following ? 'bg-white/15 hover:bg-white/25' : 'bg-white text-indigo-700 hover:bg-indigo-50'"
+                            class="text-sm font-medium px-5 py-2 rounded-lg transition disabled:opacity-50">
+                            <span x-show="!followBusy" x-text="store?.is_following ? '✓ Following' : '+ Follow'"></span>
+                            <span x-show="followBusy" style="display:none">...</span>
+                        </button>
                     </div>
                 </div>
                 <p x-show="store?.description" class="mt-4 text-indigo-50 max-w-3xl" x-text="store?.description" style="display:none"></p>
@@ -61,14 +72,20 @@
                 <template x-for="product in products" :key="product.id">
                     <a :href="'/products/' + product.id"
                         class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition group">
-                        <div class="aspect-square bg-gray-100 overflow-hidden">
-                            <img :src="primaryImage(product)" :alt="product.title"
+                        <div class="aspect-square bg-gray-100 overflow-hidden relative">
+                            <img :src="primaryImage(product)" :alt="product.title" loading="lazy"
                                 onerror="this.src='https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image'"
                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <span x-show="product.condition"
+                                class="absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                :class="conditionChipClasses(product.condition?.color)"
+                                x-text="product.condition?.name" style="display:none"></span>
                         </div>
                         <div class="p-3">
-                            <h3 class="font-medium text-gray-900 text-sm line-clamp-2 mb-1" x-text="product.title"></h3>
-                            <p class="text-indigo-600 font-semibold" x-text="formatPrice(product.price_amount, product.currency)"></p>
+                            <h3 class="font-medium text-gray-900 text-sm line-clamp-2 mb-1.5" x-text="product.title"></h3>
+                            <p class="text-lg font-bold text-indigo-600 leading-tight" x-text="formatPrice(product.price_amount, product.currency)"></p>
+                            <p class="text-xs text-gray-400 mt-1" x-show="product.published_at || product.created_at"
+                               x-text="formatRelativeTime(product.published_at || product.created_at)" style="display:none"></p>
                         </div>
                     </a>
                 </template>
@@ -98,10 +115,15 @@
             page: 1,
             loading: true,
             error: '',
+            followBusy: false,
+            get canFollow() {
+                const me = window.auth.user();
+                return !!me && this.store && me.id !== this.store?.seller?.id;
+            },
             primaryImage(product) {
                 if (product.images && product.images.length > 0) {
                     const primary = product.images.find(i => i.is_primary) || product.images[0];
-                    return primary.url;
+                    return primary.urls?.card_webp || primary.urls?.card || primary.url;
                 }
                 return 'https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image';
             },
@@ -127,6 +149,25 @@
                 this.page = page;
                 this.fetch();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
+            async toggleFollow() {
+                if (!window.auth.isLoggedIn()) {
+                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                    return;
+                }
+                this.followBusy = true;
+                try {
+                    const wasFollowing = !!this.store.is_following;
+                    const { data } = wasFollowing
+                        ? await window.api.delete('/stores/' + this.storeId + '/follow')
+                        : await window.api.post('/stores/' + this.storeId + '/follow');
+                    this.store = { ...this.store, ...data.store, is_following: data.is_following };
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: data.message } }));
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                } finally {
+                    this.followBusy = false;
+                }
             },
         };
     }

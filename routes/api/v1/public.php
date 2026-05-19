@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Resources\CategoryResource;
 use App\Http\Resources\ProductConditionResource;
 use App\Models\Category;
@@ -24,4 +25,6 @@ Route::middleware('throttle:public-search')->group(function () {
             'product_conditions' => ProductConditionResource::collection(ProductCondition::orderBy('rank')->get()),
         ]);
     });
+
+    Route::get('/products/{product}/reviews', [ProductReviewController::class, 'index']);
 });

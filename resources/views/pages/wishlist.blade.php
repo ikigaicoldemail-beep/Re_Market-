@@ -20,14 +20,20 @@
         <template x-for="product in products" :key="product.id">
             <div class="bg-white rounded-xl border border-gray-200 overflow-hidden group">
                 <a :href="'/products/' + product.id" class="block">
-                    <div class="aspect-square bg-gray-100 overflow-hidden">
-                        <img :src="primaryImage(product)" :alt="product.title"
+                    <div class="aspect-square bg-gray-100 overflow-hidden relative">
+                        <img :src="primaryImage(product)" :alt="product.title" loading="lazy"
                             onerror="this.src='https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image'"
                             class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <span x-show="product.condition"
+                            class="absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            :class="conditionChipClasses(product.condition?.color)"
+                            x-text="product.condition?.name" style="display:none"></span>
                     </div>
                     <div class="p-3">
-                        <h3 class="font-medium text-gray-900 text-sm line-clamp-2 mb-1" x-text="product.title"></h3>
-                        <p class="text-indigo-600 font-semibold" x-text="formatPrice(product.price_amount, product.currency)"></p>
+                        <h3 class="font-medium text-gray-900 text-sm line-clamp-2 mb-1.5" x-text="product.title"></h3>
+                        <p class="text-lg font-bold text-indigo-600 leading-tight" x-text="formatPrice(product.price_amount, product.currency)"></p>
+                        <p class="text-xs text-gray-400 mt-1" x-show="product.published_at || product.created_at"
+                           x-text="formatRelativeTime(product.published_at || product.created_at)" style="display:none"></p>
                     </div>
                 </a>
                 <div class="p-3 pt-0 flex gap-2">
@@ -55,7 +61,7 @@
             primaryImage(product) {
                 if (product.images && product.images.length > 0) {
                     const primary = product.images.find(i => i.is_primary) || product.images[0];
-                    return primary.url;
+                    return primary.urls?.card_webp || primary.urls?.card || primary.url;
                 }
                 return 'https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image';
             },
