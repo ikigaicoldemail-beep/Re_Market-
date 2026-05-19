@@ -1,18 +1,11 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Admin · Stores')
+@section('page-title', 'Stores')
 
 @section('content')
-@include('components.auth-guard')
-@include('components.toast')
-
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="adminStores()" x-init="fetch">
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <a href="/admin" class="text-sm text-gray-500 hover:text-indigo-600">← Admin</a>
-            <h1 class="text-2xl font-semibold text-gray-900 mt-1">Stores</h1>
-        </div>
-    </div>
+<div x-data="adminStores()" x-init="fetch">
+    <p class="text-sm text-gray-500 mb-6">Approve, suspend, and verify storefronts.</p>
 
     <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4 grid sm:grid-cols-3 gap-3">
         <input type="text" x-model="filters.search" @keydown.enter="apply()" placeholder="Search name, slug, email..."

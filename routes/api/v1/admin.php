@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\V1\AdminController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('role:admin')->prefix('admin')->group(function () {
+    Route::get('/stats', [AdminController::class, 'stats']);
+
     Route::get('/users', [AdminController::class, 'users']);
     Route::patch('/users/{user}', [AdminController::class, 'updateUser']);
     Route::delete('/users/{user}', [AdminController::class, 'deleteUser']);
@@ -23,4 +25,7 @@ Route::middleware('role:admin')->prefix('admin')->group(function () {
     Route::post('/categories', [AdminController::class, 'storeCategory']);
     Route::post('/categories/{category}', [AdminController::class, 'updateCategory']);
     Route::delete('/categories/{category}', [AdminController::class, 'destroyCategory']);
+
+    Route::get('/reports', [AdminController::class, 'reports']);
+    Route::patch('/reports/{report}', [AdminController::class, 'updateReport']);
 });
