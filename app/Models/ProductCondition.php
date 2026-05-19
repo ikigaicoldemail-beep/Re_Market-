@@ -14,5 +14,12 @@ class ProductCondition extends Model
         'slug',
         'description',
         'rank',
+        'quality_score',
+        'color',
+    ];
+
+    protected $casts = [
+        'quality_score' => 'integer',
+        'rank' => 'integer',
     ];
 }

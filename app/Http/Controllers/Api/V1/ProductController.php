@@ -64,6 +64,8 @@ class ProductController extends Controller
         }
 
         $product->load(['images', 'store', 'category', 'condition', 'user.profile']);
+        $product->loadCount(['reviews' => fn ($q) => $q->where('status', 'published')]);
+        $product->loadAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'published')], 'rating');
 
         return response()->json([
             'product' => new ProductResource($product),
