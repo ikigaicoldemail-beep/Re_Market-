@@ -142,16 +142,28 @@
             <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                 <template x-for="product in products" :key="product.id">
                     <a :href="'/products/' + product.id"
-                        class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition group">
-                        <div class="aspect-square bg-gray-100 overflow-hidden">
-                            <img :src="primaryImage(product)" :alt="product.title"
+                        class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition group flex flex-col">
+                        <div class="aspect-square bg-gray-100 overflow-hidden relative">
+                            <img :src="primaryImage(product)" :alt="product.title" loading="lazy"
                                 onerror="this.src='https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image'"
                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <span x-show="product.condition"
+                                class="absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm"
+                                :class="conditionChipClasses(product.condition?.color)"
+                                x-text="product.condition?.name" style="display:none"></span>
                         </div>
-                        <div class="p-3">
-                            <h3 class="font-medium text-gray-900 text-sm line-clamp-2 mb-1" x-text="product.title"></h3>
-                            <p class="text-indigo-600 font-semibold" x-text="formatPrice(product.price_amount, product.currency)"></p>
-                            <p class="text-xs text-gray-500 mt-1" x-text="product.location_city || product.location_country_code || ''"></p>
+                        <div class="p-3 flex-1 flex flex-col">
+                            <h3 class="font-medium text-gray-900 text-sm line-clamp-2 mb-1.5" x-text="product.title"></h3>
+                            <p class="text-lg font-bold text-indigo-600 leading-tight" x-text="formatPrice(product.price_amount, product.currency)"></p>
+                            <div x-show="product.reviews_count > 0" class="flex items-center gap-1 mt-1 text-xs" style="display:none">
+                                <span class="text-yellow-400">★</span>
+                                <span class="font-medium text-gray-700" x-text="(product.reviews_avg_rating ?? 0).toFixed(1)"></span>
+                                <span class="text-gray-400" x-text="'(' + product.reviews_count + ')'"></span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs text-gray-500 mt-1.5">
+                                <span class="truncate" x-text="product.location_city || product.location_country_code || ''"></span>
+                                <span class="shrink-0 ml-2" x-text="formatRelativeTime(product.published_at || product.created_at)"></span>
+                            </div>
                         </div>
                     </a>
                 </template>
@@ -256,7 +268,7 @@
             primaryImage(product) {
                 if (product.images && product.images.length > 0) {
                     const primary = product.images.find(i => i.is_primary) || product.images[0];
-                    return primary.url;
+                    return primary.urls?.card_webp || primary.urls?.card || primary.url;
                 }
                 return 'https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image';
             },

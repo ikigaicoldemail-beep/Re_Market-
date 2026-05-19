@@ -90,6 +90,17 @@
                 <span class="font-medium">Notes:</span> <span x-text="order.notes"></span>
             </p>
         </div>
+
+        {{-- Cancel order --}}
+        <div x-show="canCancel" class="mt-6 bg-white rounded-xl border border-gray-200 p-6" style="display:none">
+            <h2 class="font-semibold text-gray-900 mb-1">Cancel order</h2>
+            <p class="text-sm text-gray-500 mb-3">Cancel while the order is still pending. After payment, contact the seller for a refund.</p>
+            <button @click="cancelOrder()" :disabled="cancelling"
+                class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50">
+                <span x-show="!cancelling">Cancel this order</span>
+                <span x-show="cancelling" style="display:none">Cancelling...</span>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -99,7 +110,13 @@
         return {
             order: null,
             loading: true,
+            cancelling: false,
             orderId: null,
+            get canCancel() {
+                return this.order
+                    && ['pending', 'processing'].includes(this.order.status)
+                    && this.order.payment_status !== 'paid';
+            },
             formatDate(date) {
                 if (!date) return '';
                 return new Date(date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
@@ -141,6 +158,19 @@
                     window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
                 } finally {
                     this.loading = false;
+                }
+            },
+            async cancelOrder() {
+                if (!confirm('Cancel this order? This cannot be undone.')) return;
+                this.cancelling = true;
+                try {
+                    const { data } = await window.api.post('/orders/' + this.orderId + '/cancel');
+                    this.order = data.order;
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: data.message || 'Order cancelled.' } }));
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                } finally {
+                    this.cancelling = false;
                 }
             },
         };

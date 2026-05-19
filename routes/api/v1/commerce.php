@@ -15,4 +15,5 @@ Route::delete('/cart', [CartController::class, 'clear']);
 Route::post('/checkout', [CheckoutController::class, 'store']);
 Route::get('/orders', [OrderController::class, 'index']);
 Route::get('/orders/{order}', [OrderController::class, 'show']);
+Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
 Route::get('/orders/{order}/payment-status', [PaymentController::class, 'show']);

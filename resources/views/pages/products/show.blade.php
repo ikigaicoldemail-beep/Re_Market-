@@ -23,10 +23,10 @@
             </div>
             <div class="grid grid-cols-5 gap-2 mt-3" x-show="product?.images?.length > 1" style="display:none">
                 <template x-for="img in product.images" :key="img.id">
-                    <button @click="activeImage = img.url"
-                        :class="activeImage === img.url ? 'ring-2 ring-indigo-600' : 'ring-1 ring-gray-200'"
+                    <button @click="setActive(img)"
+                        :class="activeImage === heroSrc(img) ? 'ring-2 ring-indigo-600' : 'ring-1 ring-gray-200'"
                         class="aspect-square bg-white rounded-lg overflow-hidden">
-                        <img :src="img.url" class="w-full h-full object-cover">
+                        <img :src="img.urls?.thumb_webp || img.urls?.thumb || img.url" loading="lazy" class="w-full h-full object-cover">
                     </button>
                 </template>
             </div>
@@ -36,10 +36,17 @@
         <div>
             <h1 class="text-3xl font-semibold text-gray-900" x-text="product?.title"></h1>
 
-            <div class="flex items-center gap-3 mt-2">
+            <div class="flex items-center gap-3 mt-2 flex-wrap">
                 <span class="text-sm text-gray-500" x-text="product?.location_city || product?.location_country_code || ''"></span>
-                <span x-show="product?.condition" class="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full"
-                    x-text="product?.condition?.name" style="display:none"></span>
+                <span x-show="product?.condition"
+                    class="text-xs px-2 py-0.5 rounded-full font-medium"
+                    :class="conditionChipClasses(product?.condition?.color)"
+                    style="display:none">
+                    <span x-text="product?.condition?.name"></span>
+                    <span class="opacity-60 ml-1" x-text="'· ' + (product?.condition?.quality_score ?? '') + '/100'"></span>
+                </span>
+                <span class="text-xs text-gray-400" x-show="product?.published_at || product?.created_at"
+                    x-text="formatRelativeTime(product?.published_at || product?.created_at)" style="display:none"></span>
             </div>
 
             <p class="text-3xl font-bold text-indigo-600 mt-4" x-text="formatPrice(product?.price_amount, product?.currency)"></p>
@@ -85,6 +92,12 @@
                 <button @click="findSimilar()" class="w-full mt-3 text-sm text-indigo-600 hover:text-indigo-700 underline">
                     Find visually similar items
                 </button>
+
+                <button @click="openReport()"
+                    x-show="product?.user_id && (!window.auth.user() || product.user_id !== window.auth.user().id)"
+                    class="w-full mt-1 text-xs text-gray-500 hover:text-red-600" style="display:none">
+                    🚩 Report this listing
+                </button>
             </div>
 
             {{-- Description --}}
@@ -92,6 +105,127 @@
                 <h2 class="font-semibold text-gray-900 mb-2">Description</h2>
                 <p class="text-gray-700 whitespace-pre-line" x-text="product?.description"></p>
             </div>
+        </div>
+    </div>
+
+    {{-- Reviews section --}}
+    <div x-show="product && !loading" class="mt-12 max-w-4xl" style="display:none">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-900">Reviews</h2>
+            <button x-show="canWriteReview" @click="openReview()"
+                class="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700" style="display:none">
+                <span x-text="myReview ? 'Edit my review' : 'Write a review'"></span>
+            </button>
+        </div>
+
+        <div x-show="reviewsSummary.total === 0" class="bg-white border border-gray-200 rounded-xl p-6 text-center text-sm text-gray-500" style="display:none">
+            No reviews yet. <span x-show="canWriteReview" style="display:none">Be the first to leave one!</span>
+        </div>
+
+        <div x-show="reviewsSummary.total > 0" class="bg-white border border-gray-200 rounded-xl p-5 mb-5 grid sm:grid-cols-[auto_1fr] gap-6" style="display:none">
+            <div class="text-center">
+                <p class="text-4xl font-bold text-gray-900" x-text="reviewsSummary.average?.toFixed(1)"></p>
+                <div class="flex justify-center gap-0.5 text-yellow-400 my-1">
+                    <template x-for="i in 5" :key="i">
+                        <span x-text="i &lt;= Math.round(reviewsSummary.average) ? '★' : '☆'"></span>
+                    </template>
+                </div>
+                <p class="text-xs text-gray-500"><span x-text="reviewsSummary.total"></span> reviews</p>
+            </div>
+            <div class="space-y-1">
+                <template x-for="r in [5,4,3,2,1]" :key="r">
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 text-gray-600" x-text="r"></span>
+                        <span class="text-yellow-400">★</span>
+                        <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                            <div class="bg-yellow-400 h-2"
+                                 :style="'width: ' + (reviewsSummary.total > 0 ? (reviewsSummary.breakdown[r] / reviewsSummary.total * 100) : 0) + '%'"></div>
+                        </div>
+                        <span class="w-8 text-right text-gray-500" x-text="reviewsSummary.breakdown[r] ?? 0"></span>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <div x-show="!canWriteReview && reviewEligibility.checked && !myReview" class="text-xs text-gray-500 mb-4" style="display:none">
+            <span x-text="reviewEligibility.reason"></span>
+        </div>
+
+        <div class="space-y-3">
+            <template x-for="r in reviews" :key="r.id">
+                <div class="bg-white border border-gray-200 rounded-xl p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-9 h-9 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-medium shrink-0"
+                                 x-text="(r.reviewer?.name || '?').charAt(0).toUpperCase()"></div>
+                            <div class="min-w-0">
+                                <p class="font-medium text-gray-900 text-sm truncate" x-text="r.reviewer?.name || 'Anonymous'"></p>
+                                <p class="text-xs text-gray-400" x-text="formatRelativeTime(r.created_at)"></p>
+                            </div>
+                        </div>
+                        <div class="text-yellow-400 text-sm shrink-0">
+                            <template x-for="i in 5" :key="i">
+                                <span x-text="i &lt;= r.rating ? '★' : '☆'"></span>
+                            </template>
+                        </div>
+                    </div>
+                    <p x-show="r.title" class="mt-2 font-medium text-gray-900" x-text="r.title" style="display:none"></p>
+                    <p x-show="r.body" class="mt-1 text-sm text-gray-700 whitespace-pre-line" x-text="r.body" style="display:none"></p>
+
+                    <div x-show="r.seller_reply" class="mt-3 ml-6 pl-3 border-l-2 border-gray-200" style="display:none">
+                        <p class="text-xs text-gray-500 mb-1">
+                            Seller replied <span x-text="formatRelativeTime(r.seller_replied_at)"></span>
+                        </p>
+                        <p class="text-sm text-gray-700 whitespace-pre-line" x-text="r.seller_reply"></p>
+                    </div>
+
+                    <div x-show="r.user_id === (window.auth.user()?.id ?? 0)" class="mt-2 flex gap-3 text-xs" style="display:none">
+                        <button @click="deleteReview(r)" class="text-red-600 hover:text-red-700">Delete</button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    {{-- Write/edit review modal --}}
+    <div x-show="showReview" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+         @click.self="showReview = false" style="display:none">
+        <div class="bg-white rounded-xl max-w-md w-full p-6">
+            <h2 class="text-lg font-semibold mb-3">
+                <span x-text="myReview ? 'Edit your review' : 'Write a review'"></span>
+            </h2>
+            <form @submit.prevent="submitReview()" class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Rating *</label>
+                    <div class="flex gap-1 text-3xl text-yellow-400">
+                        <template x-for="i in 5" :key="i">
+                            <button type="button" @click="reviewForm.rating = i"
+                                :class="i &lt;= reviewForm.rating ? 'opacity-100' : 'opacity-30 hover:opacity-60'">
+                                <span x-text="'★'"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Title (optional)</label>
+                    <input type="text" x-model="reviewForm.title" maxlength="120"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Your experience</label>
+                    <textarea x-model="reviewForm.body" rows="4" maxlength="5000"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        placeholder="What did you like? What didn't work?"></textarea>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" :disabled="reviewSubmitting || reviewForm.rating < 1"
+                        class="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50">
+                        <span x-show="!reviewSubmitting" x-text="myReview ? 'Save changes' : 'Submit review'"></span>
+                        <span x-show="reviewSubmitting" style="display:none">Submitting...</span>
+                    </button>
+                    <button type="button" @click="showReview = false" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -121,6 +255,41 @@
                     </template>
                 </div>
             </div>
+        </div>
+    </div>
+
+    {{-- Report modal --}}
+    <div x-show="showReport" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+         @click.self="showReport = false" style="display:none">
+        <div class="bg-white rounded-xl max-w-md w-full p-6">
+            <h2 class="text-lg font-semibold mb-1">Report this listing</h2>
+            <p class="text-sm text-gray-500 mb-4">Help us keep the marketplace safe. Our moderators will review your report.</p>
+            <form @submit.prevent="submitReport()" class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
+                    <select x-model="reportForm.reason" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="" disabled>— Select a reason —</option>
+                        <template x-for="r in reportReasons" :key="r.value">
+                            <option :value="r.value" x-text="r.label"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Details (optional)</label>
+                    <textarea x-model="reportForm.details" rows="3" maxlength="2000"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        placeholder="What's wrong with this listing?"></textarea>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" :disabled="reportSubmitting"
+                        class="flex-1 bg-red-600 text-white py-2 rounded-lg font-medium hover:bg-red-700 disabled:opacity-50">
+                        <span x-show="!reportSubmitting">Submit report</span>
+                        <span x-show="reportSubmitting" style="display:none">Submitting...</span>
+                    </button>
+                    <button type="button" @click="showReport = false" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -168,11 +337,27 @@
             showSimilar: false,
             similarLoading: false,
             similarProducts: [],
+            showReport: false,
+            reportReasons: [],
+            reportForm: { reason: '', details: '' },
+            reportSubmitting: false,
+            reviews: [],
+            reviewsSummary: { total: 0, average: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } },
+            myReview: null,
+            reviewEligibility: { checked: false, eligible: false, reason: '' },
+            showReview: false,
+            reviewForm: { rating: 0, title: '', body: '' },
+            reviewSubmitting: false,
             async init() {
                 const segments = window.location.pathname.split('/').filter(Boolean);
                 this.productId = parseInt(segments[segments.length - 1]);
                 await this.fetch();
                 await this.checkWishlist();
+                await this.fetchReviews();
+                this.checkReviewEligibility();
+            },
+            get canWriteReview() {
+                return this.reviewEligibility.eligible && !this.myReview;
             },
             async checkWishlist() {
                 if (!window.auth.isLoggedIn() || !this.product) return;
@@ -210,7 +395,8 @@
                     const { data } = await window.api.get('/products/' + this.productId);
                     this.product = data.product;
                     const imgs = this.product.images || [];
-                    this.activeImage = imgs.length > 0 ? (imgs.find(i => i.is_primary) || imgs[0]).url
+                    const primary = imgs.length > 0 ? (imgs.find(i => i.is_primary) || imgs[0]) : null;
+                    this.activeImage = primary ? this.heroSrc(primary)
                         : 'https://placehold.co/600x600/e5e7eb/9ca3af?text=No+Image';
                 } catch (e) {
                     this.error = window.extractApiError(e) || 'Product not found.';
@@ -291,10 +477,16 @@
                     this.sharingPlatform = false;
                 }
             },
+            heroSrc(img) {
+                return img.urls?.large_webp || img.urls?.large || img.url;
+            },
+            setActive(img) {
+                this.activeImage = this.heroSrc(img);
+            },
             similarPrimaryImage(p) {
                 if (p.images && p.images.length > 0) {
                     const primary = p.images.find(i => i.is_primary) || p.images[0];
-                    return primary.url;
+                    return primary.urls?.card_webp || primary.urls?.card || primary.url;
                 }
                 return 'https://placehold.co/300x300/e5e7eb/9ca3af?text=No+Image';
             },
@@ -318,6 +510,106 @@
                     this.showSimilar = false;
                 } finally {
                     this.similarLoading = false;
+                }
+            },
+            async fetchReviews() {
+                try {
+                    const { data } = await window.api.get('/products/' + this.productId + '/reviews', { params: { per_page: 50 } });
+                    this.reviews = data.reviews || [];
+                    this.reviewsSummary = data.summary || this.reviewsSummary;
+                    const me = window.auth.user();
+                    this.myReview = me ? this.reviews.find(r => r.user_id === me.id) : null;
+                } catch {}
+            },
+            async checkReviewEligibility() {
+                const me = window.auth.user();
+                if (!me) {
+                    this.reviewEligibility = { checked: true, eligible: false, reason: 'Sign in to leave a review.' };
+                    return;
+                }
+                if (me.id === this.product?.user_id) {
+                    this.reviewEligibility = { checked: true, eligible: false, reason: '' };
+                    return;
+                }
+                if (this.myReview) {
+                    this.reviewEligibility = { checked: true, eligible: true, reason: '' };
+                    return;
+                }
+                try {
+                    const { data } = await window.api.get('/orders', { params: { per_page: 50 } });
+                    const orders = data.orders || [];
+                    const hasPaid = orders.some(o => o.payment_status === 'paid'
+                        && (o.items || []).some(i => i.product_id === this.product.id));
+                    if (hasPaid) {
+                        this.reviewEligibility = { checked: true, eligible: true, reason: '' };
+                    } else {
+                        this.reviewEligibility = { checked: true, eligible: false, reason: 'Only buyers who have purchased this product can leave a review.' };
+                    }
+                } catch {
+                    this.reviewEligibility = { checked: true, eligible: false, reason: '' };
+                }
+            },
+            openReview() {
+                this.reviewForm = this.myReview
+                    ? { rating: this.myReview.rating, title: this.myReview.title || '', body: this.myReview.body || '' }
+                    : { rating: 0, title: '', body: '' };
+                this.showReview = true;
+            },
+            async submitReview() {
+                if (this.reviewForm.rating < 1) return;
+                this.reviewSubmitting = true;
+                try {
+                    if (this.myReview) {
+                        await window.api.put('/reviews/' + this.myReview.id, this.reviewForm);
+                        window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Review updated.' } }));
+                    } else {
+                        await window.api.post('/products/' + this.productId + '/reviews', this.reviewForm);
+                        window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Thanks for your review!' } }));
+                    }
+                    this.showReview = false;
+                    await this.fetchReviews();
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                } finally {
+                    this.reviewSubmitting = false;
+                }
+            },
+            async deleteReview(r) {
+                if (!confirm('Delete your review?')) return;
+                try {
+                    await window.api.delete('/reviews/' + r.id);
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'info', message: 'Review deleted.' } }));
+                    this.myReview = null;
+                    await this.fetchReviews();
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                }
+            },
+            async openReport() {
+                if (!window.auth.isLoggedIn()) {
+                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                    return;
+                }
+                this.showReport = true;
+                this.reportForm = { reason: '', details: '' };
+                if (this.reportReasons.length === 0) {
+                    try {
+                        const { data } = await window.api.get('/product-reports/reasons');
+                        this.reportReasons = data.reasons || [];
+                    } catch {}
+                }
+            },
+            async submitReport() {
+                if (!this.reportForm.reason) return;
+                this.reportSubmitting = true;
+                try {
+                    const { data } = await window.api.post('/products/' + this.product.id + '/report', this.reportForm);
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: data.message || 'Report submitted.' } }));
+                    this.showReport = false;
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                } finally {
+                    this.reportSubmitting = false;
                 }
             },
             async copyShareLink() {
