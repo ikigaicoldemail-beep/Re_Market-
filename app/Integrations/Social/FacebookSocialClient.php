@@ -5,6 +5,7 @@ namespace App\Integrations\Social;
 use App\Contracts\SocialPlatformClientInterface;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
+use App\Support\CircuitBreaker;
 use Composer\CaBundle\CaBundle;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -15,6 +16,7 @@ use Throwable;
 class FacebookSocialClient implements SocialPlatformClientInterface
 {
     private Client $httpClient;
+    private CircuitBreaker $breaker;
 
     public function __construct()
     {
@@ -25,6 +27,7 @@ class FacebookSocialClient implements SocialPlatformClientInterface
         }
 
         $this->httpClient = new Client($config);
+        $this->breaker = new CircuitBreaker('fb-graph', failureThreshold: 5, cooldownSeconds: 60);
     }
 
     public function platform(): string
@@ -33,6 +36,11 @@ class FacebookSocialClient implements SocialPlatformClientInterface
     }
 
     public function publish(SocialAccount $account, SocialPost $post): array
+    {
+        return $this->breaker->call(fn () => $this->doPublish($account, $post));
+    }
+
+    private function doPublish(SocialAccount $account, SocialPost $post): array
     {
         try {
             if ($account->status !== 'active' || ! $account->access_token) {

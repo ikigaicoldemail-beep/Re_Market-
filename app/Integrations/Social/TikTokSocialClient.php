@@ -5,6 +5,7 @@ namespace App\Integrations\Social;
 use App\Contracts\SocialPlatformClientInterface;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
+use App\Support\CircuitBreaker;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Throwable;
@@ -13,12 +14,14 @@ class TikTokSocialClient implements SocialPlatformClientInterface
 {
     private const API_BASE_URL = 'https://open.tiktokapis.com/v1';
     private Client $httpClient;
+    private CircuitBreaker $breaker;
 
     public function __construct()
     {
         $this->httpClient = new Client([
             'timeout' => 30,
         ]);
+        $this->breaker = new CircuitBreaker('tiktok-api', failureThreshold: 5, cooldownSeconds: 60);
     }
 
     public function platform(): string
@@ -31,6 +34,11 @@ class TikTokSocialClient implements SocialPlatformClientInterface
      * Requires access_token in social_account
      */
     public function publish(SocialAccount $account, SocialPost $post): array
+    {
+        return $this->breaker->call(fn () => $this->doPublish($account, $post));
+    }
+
+    private function doPublish(SocialAccount $account, SocialPost $post): array
     {
         try {
             // Verify account is active

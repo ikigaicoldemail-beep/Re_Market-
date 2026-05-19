@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Events\ChatMessageSent;
 use App\Models\ChatMessage;
 use App\Models\Conversation;
 use App\Models\Product;
 use App\Models\User;
+use App\Notifications\NewChatMessage;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -101,7 +104,7 @@ class ChatService
             $body = $attachmentPath ? '[image]' : '';
         }
 
-        return DB::transaction(function () use ($user, $conversation, $type, $body, $attachmentPath) {
+        $message = DB::transaction(function () use ($user, $conversation, $type, $body, $attachmentPath) {
             $message = $conversation->messages()->create([
                 'sender_id' => $user->id,
                 'type' => $type,
@@ -124,6 +127,32 @@ class ChatService
 
             return $message->load('sender.profile');
         });
+
+        // Broadcast to other participants. ShouldBroadcastNow keeps it sync
+        // so no queue worker is required for chat. If Reverb is not running,
+        // the broadcast quietly logs and clients keep polling as before.
+        try {
+            ChatMessageSent::dispatch($message);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        // Notify the other participant(s).
+        try {
+            $recipients = $conversation->participants()
+                ->where('user_id', '!=', $user->id)
+                ->with('user')
+                ->get()
+                ->pluck('user')
+                ->filter();
+            if ($recipients->isNotEmpty()) {
+                Notification::send($recipients, new NewChatMessage($message));
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $message;
     }
 
     public function markAsSeen(User $user, Conversation $conversation): Conversation

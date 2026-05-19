@@ -3,6 +3,7 @@
 namespace App\Integrations\Ai;
 
 use App\Contracts\AiImageEmbeddingClientInterface;
+use App\Support\CircuitBreaker;
 use Composer\CaBundle\CaBundle;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -13,6 +14,7 @@ class HuggingFaceImageEmbeddingClient implements AiImageEmbeddingClientInterface
     private const DEFAULT_MODEL = 'facebook/data2vec-vision-base';
 
     private Client $httpClient;
+    private CircuitBreaker $breaker;
 
     public function __construct()
     {
@@ -21,6 +23,7 @@ class HuggingFaceImageEmbeddingClient implements AiImageEmbeddingClientInterface
             'connect_timeout' => 10,
             'verify' => CaBundle::getBundledCaBundlePath(),
         ]);
+        $this->breaker = new CircuitBreaker('hf-embed', failureThreshold: 3, cooldownSeconds: 120);
     }
 
     public function provider(): string
@@ -29,6 +32,11 @@ class HuggingFaceImageEmbeddingClient implements AiImageEmbeddingClientInterface
     }
 
     public function embedFromPath(string $absolutePath): array
+    {
+        return $this->breaker->call(fn () => $this->doEmbed($absolutePath));
+    }
+
+    private function doEmbed(string $absolutePath): array
     {
         $apiKey = (string) config('services.ai_similarity.api_key');
 
