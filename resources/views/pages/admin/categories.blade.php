@@ -1,17 +1,12 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Admin · Categories')
+@section('page-title', 'Categories')
 
 @section('content')
-@include('components.auth-guard')
-@include('components.toast')
-
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="adminCategories()" x-init="fetch">
+<div x-data="adminCategories()" x-init="fetch">
     <div class="flex items-center justify-between mb-6">
-        <div>
-            <a href="/admin" class="text-sm text-gray-500 hover:text-indigo-600">← Admin</a>
-            <h1 class="text-2xl font-semibold text-gray-900 mt-1">Categories</h1>
-        </div>
+        <p class="text-sm text-gray-500">Manage marketplace categories &amp; their logos.</p>
         <button @click="openCreate()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">
             + New Category
         </button>
@@ -279,7 +274,7 @@
             },
 
             async remove(cat) {
-                if (!confirm('Delete category "' + cat.name + '"? Products in this category will keep their reference.')) return;
+                if (!confirm('Delete category "' + cat.name + '"? Products in this category will be moved to "Other".')) return;
                 try {
                     await window.api.delete('/admin/categories/' + cat.id);
                     this.categories = this.categories.filter(c => c.id !== cat.id);

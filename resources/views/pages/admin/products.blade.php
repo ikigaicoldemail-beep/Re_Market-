@@ -1,18 +1,11 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Admin · Products')
+@section('page-title', 'Products')
 
 @section('content')
-@include('components.auth-guard')
-@include('components.toast')
-
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="adminProducts()" x-init="fetch">
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <a href="/admin" class="text-sm text-gray-500 hover:text-indigo-600">← Admin</a>
-            <h1 class="text-2xl font-semibold text-gray-900 mt-1">Products</h1>
-        </div>
-    </div>
+<div x-data="adminProducts()" x-init="fetch">
+    <p class="text-sm text-gray-500 mb-6">Review listings, moderate, and remove content.</p>
 
     <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4 grid sm:grid-cols-3 gap-3">
         <input type="text" x-model="filters.search" @keydown.enter="apply()" placeholder="Search title, slug, SKU..."
@@ -116,7 +109,7 @@
             primaryImage(product) {
                 if (product.images && product.images.length > 0) {
                     const primary = product.images.find(i => i.is_primary) || product.images[0];
-                    return primary.url;
+                    return primary.urls?.thumb_webp || primary.urls?.thumb || primary.url;
                 }
                 return 'https://placehold.co/100x100/e5e7eb/9ca3af?text=N/A';
             },

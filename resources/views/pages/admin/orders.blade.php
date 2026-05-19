@@ -1,18 +1,11 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Admin · Orders')
+@section('page-title', 'Orders')
 
 @section('content')
-@include('components.auth-guard')
-@include('components.toast')
-
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="adminOrders()" x-init="fetch">
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <a href="/admin" class="text-sm text-gray-500 hover:text-indigo-600">← Admin</a>
-            <h1 class="text-2xl font-semibold text-gray-900 mt-1">Orders</h1>
-        </div>
-    </div>
+<div x-data="adminOrders()" x-init="fetch">
+    <p class="text-sm text-gray-500 mb-6">Track and update order &amp; payment status.</p>
 
     <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4 grid sm:grid-cols-2 gap-3">
         <select x-model="filters.status" @change="apply()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">

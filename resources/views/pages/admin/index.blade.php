@@ -1,23 +1,52 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
-@section('title', 'Admin Dashboard')
+@section('title', 'Admin · Dashboard')
+@section('page-title', 'Dashboard')
 
 @section('content')
-@include('components.auth-guard')
-@include('components.toast')
+<div x-data="adminHome()" x-init="init">
+    <div>
+        <p class="text-sm text-gray-500">Manage marketplace users, stores, products, orders, categories, and reports.</p>
 
-<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="adminHome()" x-init="init">
-    <div x-show="!authorized && checked" class="bg-red-50 border border-red-200 rounded-xl p-6 text-center" style="display:none">
-        <p class="text-red-700 font-medium">Access denied.</p>
-        <p class="text-sm text-red-600 mt-1">This area is restricted to administrators.</p>
-        <a href="/" class="inline-block mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">Back home</a>
-    </div>
+        {{-- Stat cards (cached 60s server-side) --}}
+        <div x-show="stats" class="grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mt-6" style="display:none">
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Users</p>
+                <p class="text-2xl font-semibold text-gray-900 mt-1" x-text="stats?.users?.total ?? '—'"></p>
+                <p class="text-xs text-gray-500 mt-1"><span x-text="stats?.users?.sellers ?? 0"></span> sellers</p>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Stores</p>
+                <p class="text-2xl font-semibold text-gray-900 mt-1" x-text="stats?.stores?.total ?? '—'"></p>
+                <p class="text-xs text-gray-500 mt-1"><span x-text="stats?.stores?.pending_verification ?? 0"></span> unverified</p>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Products</p>
+                <p class="text-2xl font-semibold text-gray-900 mt-1" x-text="stats?.products?.total ?? '—'"></p>
+                <p class="text-xs text-gray-500 mt-1"><span x-text="stats?.products?.published ?? 0"></span> published</p>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Orders</p>
+                <p class="text-2xl font-semibold text-gray-900 mt-1" x-text="stats?.orders?.total ?? '—'"></p>
+                <p class="text-xs text-gray-500 mt-1"><span x-text="stats?.orders?.paid ?? 0"></span> paid</p>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Revenue</p>
+                <p class="text-2xl font-semibold text-gray-900 mt-1"
+                   x-text="formatPrice(stats?.revenue?.paid_total_minor ?? 0, stats?.revenue?.currency ?? 'USD')"></p>
+                <p class="text-xs text-gray-500 mt-1">paid orders</p>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4"
+                 :class="(stats?.reports?.open ?? 0) > 0 ? 'border-red-200 bg-red-50' : ''">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Open reports</p>
+                <p class="text-2xl font-semibold mt-1"
+                   :class="(stats?.reports?.open ?? 0) > 0 ? 'text-red-700' : 'text-gray-900'"
+                   x-text="stats?.reports?.open ?? '—'"></p>
+                <a href="/admin/reports" class="text-xs text-indigo-600 hover:text-indigo-700 mt-1 inline-block">Review →</a>
+            </div>
+        </div>
 
-    <div x-show="authorized" style="display:none">
-        <h1 class="text-2xl font-semibold text-gray-900">Admin Dashboard</h1>
-        <p class="text-sm text-gray-500 mt-1">Manage marketplace users, stores, products, and orders.</p>
-
-        <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-8">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-6 gap-4 mt-8">
             <a href="/admin/users" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition">
                 <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mb-3">
                     <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -53,6 +82,16 @@
                 <p class="font-semibold text-gray-900">Categories</p>
                 <p class="text-xs text-gray-500 mt-1">Manage marketplace categories &amp; logos</p>
             </a>
+            <a href="/admin/reports" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition relative">
+                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21l1.5-7.5a4 4 0 014-3.5h11a4 4 0 014 3.5L25 21M12 3v4m0 4h.01"/></svg>
+                </div>
+                <p class="font-semibold text-gray-900">Reports</p>
+                <p class="text-xs text-gray-500 mt-1">Buyer-flagged products to review</p>
+                <span x-show="(stats?.reports?.open ?? 0) > 0"
+                      class="absolute top-3 right-3 bg-red-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full"
+                      x-text="stats?.reports?.open" style="display:none"></span>
+            </a>
         </div>
     </div>
 </div>
@@ -61,22 +100,16 @@
 <script>
     function adminHome() {
         return {
-            authorized: false,
-            checked: false,
+            stats: null,
             async init() {
-                const user = window.auth.user();
-                if (user?.role === 'admin') {
-                    this.authorized = true;
-                    this.checked = true;
-                    return;
-                }
+                await this.fetchStats();
+            },
+            async fetchStats() {
                 try {
-                    const { data } = await window.api.get('/admin/users', { params: { per_page: 1 } });
-                    this.authorized = !!data;
-                } catch {
-                    this.authorized = false;
-                } finally {
-                    this.checked = true;
+                    const { data } = await window.api.get('/admin/stats');
+                    this.stats = data.stats;
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
                 }
             },
         };

@@ -5,22 +5,62 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\ProductReportResource;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\StoreResource;
 use App\Http\Resources\UserResource;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductReport;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
+    public function stats(): JsonResponse
+    {
+        $stats = Cache::remember('admin:stats:v1', 60, function () {
+            return [
+                'users' => [
+                    'total' => User::count(),
+                    'active' => User::where('status', 'active')->count(),
+                    'sellers' => User::where('role', 'seller')->count(),
+                ],
+                'stores' => [
+                    'total' => Store::count(),
+                    'active' => Store::where('status', 'active')->count(),
+                    'pending_verification' => Store::where('is_verified', false)->where('status', 'active')->count(),
+                ],
+                'products' => [
+                    'total' => Product::count(),
+                    'published' => Product::where('status', 'published')->count(),
+                    'pending_moderation' => Product::where('moderation_status', 'pending')->count(),
+                ],
+                'orders' => [
+                    'total' => Order::count(),
+                    'paid' => Order::where('payment_status', 'paid')->count(),
+                    'pending' => Order::where('status', 'pending')->count(),
+                ],
+                'revenue' => [
+                    'paid_total_minor' => (int) Order::where('payment_status', 'paid')->sum('total_amount'),
+                    'currency' => Order::where('payment_status', 'paid')->value('currency') ?? 'USD',
+                ],
+                'reports' => [
+                    'open' => ProductReport::where('status', 'open')->count(),
+                ],
+            ];
+        });
+
+        return response()->json(['stats' => $stats]);
+    }
+
     public function users(Request $request): JsonResponse
     {
         $filters = $request->validate([
@@ -372,6 +412,18 @@ class AdminController extends Controller
 
     public function destroyCategory(Category $category): JsonResponse
     {
+        if ($category->slug === 'other') {
+            abort(422, 'The "Other" category cannot be deleted — it is used as the fallback for products without a category.');
+        }
+
+        $other = Category::firstOrCreate(
+            ['slug' => 'other'],
+            ['name' => 'Other', 'description' => 'Items that don\'t fit any other category.', 'status' => 'active', 'sort_order' => 99]
+        );
+
+        Product::where('category_id', $category->id)->update(['category_id' => $other->id]);
+        Category::where('parent_id', $category->id)->update(['parent_id' => null]);
+
         if ($category->logo_path && $category->logo_disk) {
             Storage::disk($category->logo_disk)->delete($category->logo_path);
         }
@@ -379,7 +431,54 @@ class AdminController extends Controller
         $category->delete();
 
         return response()->json([
-            'message' => 'Category deleted successfully.',
+            'message' => 'Category deleted. Affected products were moved to "Other".',
+        ]);
+    }
+
+    public function reports(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'status' => ['nullable', Rule::in(ProductReport::STATUSES)],
+            'reason' => ['nullable', 'string', 'max:64'],
+            'product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $reports = ProductReport::query()
+            ->with(['product.images', 'product.store', 'reporter.profile', 'resolver.profile'])
+            ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
+            ->when($filters['reason'] ?? null, fn ($q, $v) => $q->where('reason', $v))
+            ->when($filters['product_id'] ?? null, fn ($q, $v) => $q->where('product_id', $v))
+            ->orderByRaw("FIELD(status, 'open') DESC")
+            ->latest()
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
+
+        return response()->json([
+            'reports' => ProductReportResource::collection($reports),
+            'meta' => $this->paginationMeta($reports),
+        ]);
+    }
+
+    public function updateReport(Request $request, ProductReport $report): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['resolved', 'dismissed'])],
+            'resolution_note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $report->fill([
+            'status' => $data['status'],
+            'resolution_note' => $data['resolution_note'] ?? $report->resolution_note,
+            'resolved_by' => $request->user()->id,
+            'resolved_at' => now(),
+        ])->save();
+
+        Cache::forget('admin:stats:v1');
+
+        return response()->json([
+            'message' => 'Report '.$data['status'].'.',
+            'report' => new ProductReportResource($report->fresh(['product.images', 'product.store', 'reporter.profile', 'resolver.profile'])),
         ]);
     }
 
