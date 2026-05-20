@@ -76,7 +76,17 @@
                                 <option value="rejected">rejected</option>
                             </select>
                         </td>
-                        <td class="px-4 py-3 text-right">
+                        <td class="px-4 py-3 text-right space-x-3">
+                            <button @click="toggleFeatured(product)"
+                                :title="product.is_featured ? 'Unfeature' : 'Mark as featured'"
+                                :class="product.is_featured ? 'text-amber-500 hover:text-amber-600' : 'text-gray-400 hover:text-amber-500'">
+                                <template x-if="product.is_featured">
+                                    <x-heroicon-s-star class="w-5 h-5"/>
+                                </template>
+                                <template x-if="!product.is_featured">
+                                    <x-heroicon-o-star class="w-5 h-5"/>
+                                </template>
+                            </button>
                             <button @click="remove(product)" class="text-sm text-red-600 hover:text-red-700">Delete</button>
                         </td>
                     </tr>
@@ -157,6 +167,16 @@
                 } catch (e) {
                     window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
                     this.fetch();
+                }
+            },
+            async toggleFeatured(product) {
+                const next = !product.is_featured;
+                try {
+                    const { data } = await window.api.post('/admin/products/' + product.id + '/feature', { is_featured: next });
+                    product.is_featured = data.product?.is_featured ?? next;
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: data.message || 'Updated.' } }));
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
                 }
             },
             async remove(product) {

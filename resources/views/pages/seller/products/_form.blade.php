@@ -45,18 +45,25 @@
                 <p class="text-xs text-gray-500 mt-1">e.g. 1500 = $15.00</p>
             </div>
             <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Original price <span class="text-gray-400">(optional)</span></label>
+                <input type="number" min="0" x-model.number="form.original_price_amount" placeholder="Higher than price"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <p class="text-xs text-gray-500 mt-1">Shows as strikethrough on the card</p>
+            </div>
+            <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Currency</label>
                 <input type="text" x-model="form.currency" maxlength="3"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Stock</label>
-                <input type="number" min="0" x-model.number="form.stock_quantity"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            </div>
         </div>
 
-        <div class="grid md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Stock</label>
+            <input type="number" min="0" x-model.number="form.stock_quantity"
+                class="w-full md:w-40 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
                 <select x-model="form.category_id" required
@@ -64,6 +71,16 @@
                     <option value="" disabled>— Select a category —</option>
                     <template x-for="c in categories" :key="c.id">
                         <option :value="c.id" x-text="c.name"></option>
+                    </template>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                <select x-model="form.brand_id"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">— None —</option>
+                    <template x-for="b in brands" :key="b.id">
+                        <option :value="b.id" x-text="b.name"></option>
                     </template>
                 </select>
             </div>
@@ -76,6 +93,52 @@
                         <option :value="c.id" x-text="c.name"></option>
                     </template>
                 </select>
+            </div>
+        </div>
+
+        {{-- Variants --}}
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-medium text-gray-700">Variants <span class="text-gray-400">(optional, e.g. 128GB Pink / 256GB Black)</span></label>
+                <button type="button" @click="addVariant()" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">+ Add variant</button>
+            </div>
+            <div class="space-y-2">
+                <template x-for="(v, idx) in variants" :key="idx">
+                    <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                            <input type="text" x-model="v.label" placeholder="Label (e.g. 128GB Pink)"
+                                class="sm:col-span-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <input type="text" x-model="v.sku" placeholder="SKU (optional)"
+                                class="sm:col-span-3 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <input type="number" min="0" x-model.number="v.price_amount" placeholder="Price (cents)"
+                                class="sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <input type="number" min="0" x-model.number="v.stock_quantity" placeholder="Stock"
+                                class="sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button type="button" @click="removeVariant(idx)" class="text-red-500 hover:text-red-700 px-2 sm:col-span-1">✕</button>
+                        </div>
+                    </div>
+                </template>
+                <p x-show="variants.length === 0" class="text-xs text-gray-500" style="display:none">No variants. Buyers will see the base product price + stock.</p>
+            </div>
+        </div>
+
+        {{-- Specifications --}}
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-medium text-gray-700">Specifications <span class="text-gray-400">(optional)</span></label>
+                <button type="button" @click="addSpec()" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">+ Add row</button>
+            </div>
+            <div class="space-y-2">
+                <template x-for="(spec, idx) in specRows" :key="idx">
+                    <div class="flex gap-2">
+                        <input type="text" x-model="spec.key" placeholder="e.g. Storage"
+                            class="w-1/3 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" x-model="spec.value" placeholder="e.g. 128 GB"
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button type="button" @click="removeSpec(idx)" class="text-red-500 hover:text-red-700 px-2">✕</button>
+                    </div>
+                </template>
+                <p x-show="specRows.length === 0" class="text-xs text-gray-500" style="display:none">No specs yet. Click "+ Add row" to add fields like RAM, Storage, Battery.</p>
             </div>
         </div>
 
@@ -154,8 +217,11 @@
             </label>
 
             <div x-show="scheduleEnabled" class="ml-6 mt-2" style="display:none">
-                <input type="datetime-local" x-model="form.schedule_at"
+                <input type="datetime-local" x-model="form.schedule_at" :min="minScheduleAt()"
                     class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <p x-show="form.schedule_at" class="text-xs text-purple-700 mt-1"
+                    x-text="'Listing will be hidden until ' + formatLocal(form.schedule_at) + '.'"
+                    style="display:none"></p>
             </div>
         </div>
 

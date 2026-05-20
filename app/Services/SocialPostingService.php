@@ -2,13 +2,13 @@
 
 namespace App\Services;
 
-use App\Jobs\PublishSocialPostJob;
 use App\Models\Product;
 use App\Models\SharedProduct;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -44,7 +44,14 @@ class SocialPostingService
         ]);
 
         if (($data['publish_now'] ?? false) === true) {
-            PublishSocialPostJob::dispatch($post->id);
+            try {
+                $this->publish($post);
+            } catch (\Throwable $e) {
+                Log::warning('Synchronous social publish failed; post left in failed state.', [
+                    'post_id' => $post->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $post->fresh(['product.images', 'socialAccount']);
@@ -53,6 +60,10 @@ class SocialPostingService
     public function publish(SocialPost $post): SocialPost
     {
         $post->loadMissing(['socialAccount', 'product.images']);
+
+        if ($post->status === 'posted' && $post->provider_post_id) {
+            return $post;
+        }
 
         if (! $post->socialAccount || $post->socialAccount->status !== 'active') {
             throw ValidationException::withMessages([

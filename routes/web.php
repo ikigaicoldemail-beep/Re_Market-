@@ -22,6 +22,7 @@ Route::view('/orders/{id}', 'pages.orders.show')
     ->where('id', '[0-9]+')
     ->name('orders.show');
 Route::view('/wishlist', 'pages.wishlist')->name('wishlist');
+Route::view('/compare', 'pages.compare')->name('compare');
 Route::view('/addresses', 'pages.addresses')->name('addresses');
 Route::view('/profile', 'pages.profile')->name('profile');
 
@@ -32,11 +33,17 @@ Route::view('/me/products/new', 'pages.seller.products.create')->name('me.produc
 Route::view('/me/products/{id}/edit', 'pages.seller.products.edit')
     ->where('id', '[0-9]+')
     ->name('me.products.edit');
+Route::view('/me/scheduled-listings', 'pages.seller.products.scheduled')->name('me.scheduled-listings');
 
-// Public store page
+// Public stores
+Route::view('/stores', 'pages.stores.index')->name('stores.index');
 Route::view('/stores/{id}', 'pages.stores.show')
     ->where('id', '[0-9]+')
     ->name('stores.show');
+
+// Public categories browse
+Route::view('/categories', 'pages.categories.index')->name('categories.index');
+Route::view('/categories/{slug}', 'pages.categories.show')->name('categories.show');
 
 // Social
 Route::view('/social/accounts', 'pages.social.accounts')->name('social.accounts');
@@ -66,4 +73,6 @@ Route::view('/admin/stores', 'pages.admin.stores')->name('admin.stores');
 Route::view('/admin/products', 'pages.admin.products')->name('admin.products');
 Route::view('/admin/orders', 'pages.admin.orders')->name('admin.orders');
 Route::view('/admin/categories', 'pages.admin.categories')->name('admin.categories');
+Route::view('/admin/brands', 'pages.admin.brands')->name('admin.brands');
+Route::view('/admin/banners', 'pages.admin.banners')->name('admin.banners');
 Route::view('/admin/reports', 'pages.admin.reports')->name('admin.reports');

@@ -24,11 +24,14 @@ class ProductService
     public function listPublic(array $filters): LengthAwarePaginator
     {
         $query = Product::query()
-            ->with(['images', 'store', 'category', 'condition', 'user.profile'])
+            ->with(['images', 'store', 'category', 'brand', 'condition', 'user.profile'])
             ->withCount(['reviews' => fn ($q) => $q->where('status', 'published')])
             ->withAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'published')], 'rating')
             ->where('status', 'published')
-            ->where('visibility', 'public');
+            ->where('visibility', 'public')
+            ->where(function ($q) {
+                $q->whereNull('schedule_at')->orWhere('schedule_at', '<=', now());
+            });
 
         if (! empty($filters['search'])) {
             $search = trim((string) $filters['search']);
@@ -58,6 +61,19 @@ class ProductService
             $query->whereIn('category_id', array_merge([$catId], $childIds));
         }
 
+        if (! empty($filters['brand_id'])) {
+            $query->where('brand_id', (int) $filters['brand_id']);
+        }
+
+        if (! empty($filters['featured'])) {
+            $query->where('is_featured', true);
+        }
+
+        if (! empty($filters['on_sale'])) {
+            $query->whereNotNull('original_price_amount')
+                ->whereColumn('original_price_amount', '>', 'price_amount');
+        }
+
         if (! empty($filters['product_condition_id'])) {
             $query->where('product_condition_id', $filters['product_condition_id']);
         }
@@ -78,6 +94,7 @@ class ProductService
             'oldest' => $query->oldest(),
             'price_asc' => $query->orderBy('price_amount'),
             'price_desc' => $query->orderByDesc('price_amount'),
+            'featured' => $query->orderByDesc('is_featured')->orderByDesc('featured_at')->latest(),
             default => $query->latest(),
         };
 
@@ -87,7 +104,7 @@ class ProductService
     public function listForOwner(User $user): LengthAwarePaginator
     {
         return Product::query()
-            ->with(['images', 'store', 'category', 'condition'])
+            ->with(['images', 'store', 'category', 'brand', 'condition'])
             ->where('user_id', $user->id)
             ->latest()
             ->paginate(15);
@@ -96,7 +113,7 @@ class ProductService
     public function listForStore(Store $store): LengthAwarePaginator
     {
         return Product::query()
-            ->with(['images', 'category', 'condition'])
+            ->with(['images', 'category', 'brand', 'condition'])
             ->withCount(['reviews' => fn ($q) => $q->where('status', 'published')])
             ->withAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'published')], 'rating')
             ->where('store_id', $store->id)
@@ -120,39 +137,89 @@ class ProductService
         }
 
         return DB::transaction(function () use ($user, $data) {
-            $status = $data['status'] ?? 'draft';
+            $requestedStatus = $data['status'] ?? 'draft';
+            $scheduleAt = ! empty($data['schedule_at'])
+                ? \Illuminate\Support\Carbon::parse($data['schedule_at'])->setTimezone(config('app.timezone'))
+                : null;
+            $isScheduled = $scheduleAt && $scheduleAt->isFuture();
+            $effectiveStatus = $isScheduled ? 'scheduled' : $requestedStatus;
 
             $product = Product::create([
                 'user_id' => $user->id,
                 'store_id' => $data['store_id'],
                 'category_id' => $data['category_id'] ?? null,
+                'brand_id' => $data['brand_id'] ?? null,
                 'product_condition_id' => $data['product_condition_id'] ?? null,
                 'title' => $data['title'],
                 'slug' => $this->resolveUniqueSlug($data['slug'] ?? $data['title']),
                 'sku' => $data['sku'] ?? null,
                 'description' => $data['description'],
+                'specs' => $data['specs'] ?? null,
                 'price' => $data['price_amount'],
                 'price_amount' => $data['price_amount'],
+                'original_price_amount' => $data['original_price_amount'] ?? null,
                 'currency' => strtoupper((string) ($data['currency'] ?? 'USD')),
                 'stock_quantity' => $data['stock_quantity'] ?? 1,
                 'location' => $data['location_city'] ?? null,
                 'location_country_code' => isset($data['location_country_code']) ? strtoupper((string) $data['location_country_code']) : null,
                 'location_state' => $data['location_state'] ?? null,
                 'location_city' => $data['location_city'] ?? null,
-                'status' => $status,
+                'status' => $effectiveStatus,
                 'moderation_status' => 'approved',
                 'visibility' => $data['visibility'] ?? 'public',
                 'allow_offers' => $data['allow_offers'] ?? true,
-                'published_at' => $status === 'published' ? now() : null,
-                'schedule_at' => $data['schedule_at'] ?? null,
+                'is_featured' => $data['is_featured'] ?? false,
+                'featured_at' => ! empty($data['is_featured']) ? now() : null,
+                'published_at' => $effectiveStatus === 'published' ? now() : null,
+                'schedule_at' => $scheduleAt,
                 'auto_post' => $data['auto_post'] ?? null,
             ]);
 
-            // Fire event to trigger auto-posting if enabled
-            event(new ProductCreated($product));
+            // ProductCreated is fired by the controller AFTER images are attached so auto-post listeners see the primary image.
+            // Scheduled products are picked up later by the dispatch command, which fires the event itself.
 
-            return $product->load(['images', 'store', 'category', 'condition', 'user.profile']);
+            if (! empty($data['variants']) && is_array($data['variants'])) {
+                $this->syncVariants($product, $data['variants']);
+            }
+
+            return $product->load(['images', 'variants', 'store', 'category', 'brand', 'condition', 'user.profile']);
         });
+    }
+
+    public function syncVariants(Product $product, array $variants): void
+    {
+        $keepIds = [];
+        foreach (array_values($variants) as $i => $v) {
+            if (empty($v['label'])) {
+                continue;
+            }
+            $row = [
+                'label' => (string) $v['label'],
+                'sku' => $v['sku'] ?? null,
+                'attributes' => $v['attributes'] ?? null,
+                'price_amount' => (int) ($v['price_amount'] ?? $product->price_amount),
+                'original_price_amount' => isset($v['original_price_amount']) && $v['original_price_amount'] !== '' && $v['original_price_amount'] !== null
+                    ? (int) $v['original_price_amount']
+                    : null,
+                'stock_quantity' => (int) ($v['stock_quantity'] ?? 0),
+                'sort_order' => (int) ($v['sort_order'] ?? $i),
+                'is_default' => (bool) ($v['is_default'] ?? ($i === 0)),
+            ];
+            if (! empty($v['id'])) {
+                $existing = $product->variants()->whereKey($v['id'])->first();
+                if ($existing) {
+                    $existing->fill($row)->save();
+                    $keepIds[] = $existing->id;
+                    continue;
+                }
+            }
+            $created = $product->variants()->create($row);
+            $keepIds[] = $created->id;
+        }
+
+        if (! empty($keepIds)) {
+            $product->variants()->whereNotIn('id', $keepIds)->delete();
+        }
     }
 
     public function update(Product $product, User $user, array $data): Product
@@ -170,36 +237,62 @@ class ProductService
             }
         }
 
-        $status = $data['status'] ?? $product->status;
+        $requestedStatus = $data['status'] ?? $product->status;
+
+        $incomingScheduleAt = array_key_exists('schedule_at', $data) ? $data['schedule_at'] : $product->schedule_at;
+        $scheduleAt = $incomingScheduleAt
+            ? \Illuminate\Support\Carbon::parse($incomingScheduleAt)->setTimezone(config('app.timezone'))
+            : null;
+        $isScheduled = $scheduleAt && $scheduleAt->isFuture();
+
+        // If scheduling is requested, override status; otherwise, if leaving a previously-scheduled state, default to published.
+        if ($isScheduled) {
+            $effectiveStatus = 'scheduled';
+        } elseif ($product->status === 'scheduled' && $requestedStatus === 'scheduled') {
+            $effectiveStatus = 'published';
+        } else {
+            $effectiveStatus = $requestedStatus;
+        }
 
         $product->fill([
             'store_id' => $data['store_id'] ?? $product->store_id,
             'category_id' => $data['category_id'] ?? $product->category_id,
+            'brand_id' => array_key_exists('brand_id', $data) ? $data['brand_id'] : $product->brand_id,
             'product_condition_id' => $data['product_condition_id'] ?? $product->product_condition_id,
             'title' => $data['title'] ?? $product->title,
             'slug' => isset($data['slug']) ? $this->resolveUniqueSlug($data['slug'], $product->id) : $product->slug,
             'sku' => array_key_exists('sku', $data) ? $data['sku'] : $product->sku,
             'description' => $data['description'] ?? $product->description,
+            'specs' => array_key_exists('specs', $data) ? $data['specs'] : $product->specs,
             'price' => $data['price_amount'] ?? $product->price,
             'price_amount' => $data['price_amount'] ?? $product->price_amount,
+            'original_price_amount' => array_key_exists('original_price_amount', $data) ? $data['original_price_amount'] : $product->original_price_amount,
             'currency' => isset($data['currency']) ? strtoupper((string) $data['currency']) : $product->currency,
             'stock_quantity' => $data['stock_quantity'] ?? $product->stock_quantity,
             'location' => $data['location_city'] ?? $product->location,
             'location_country_code' => array_key_exists('location_country_code', $data) ? strtoupper((string) $data['location_country_code']) : $product->location_country_code,
             'location_state' => $data['location_state'] ?? $product->location_state,
             'location_city' => $data['location_city'] ?? $product->location_city,
-            'status' => $status,
+            'status' => $effectiveStatus,
             'visibility' => $data['visibility'] ?? $product->visibility,
             'allow_offers' => $data['allow_offers'] ?? $product->allow_offers,
-            'published_at' => $status === 'published'
+            'is_featured' => array_key_exists('is_featured', $data) ? (bool) $data['is_featured'] : $product->is_featured,
+            'featured_at' => array_key_exists('is_featured', $data)
+                ? ($data['is_featured'] ? ($product->featured_at ?? now()) : null)
+                : $product->featured_at,
+            'published_at' => $effectiveStatus === 'published'
                 ? ($product->published_at ?? now())
-                : ($status === 'draft' ? null : $product->published_at),
-            'schedule_at' => array_key_exists('schedule_at', $data) ? $data['schedule_at'] : $product->schedule_at,
+                : ($effectiveStatus === 'draft' || $effectiveStatus === 'scheduled' ? null : $product->published_at),
+            'schedule_at' => $isScheduled ? $scheduleAt : null,
             'auto_post' => array_key_exists('auto_post', $data) ? $data['auto_post'] : $product->auto_post,
         ]);
         $product->save();
 
-        return $product->load(['images', 'store', 'category', 'condition', 'user.profile']);
+        if (array_key_exists('variants', $data) && is_array($data['variants'])) {
+            $this->syncVariants($product, $data['variants']);
+        }
+
+        return $product->load(['images', 'variants', 'store', 'category', 'brand', 'condition', 'user.profile']);
     }
 
     public function delete(Product $product): void
@@ -257,7 +350,7 @@ class ProductService
             }
         });
 
-        return $product->fresh(['images', 'store', 'category', 'condition', 'user.profile']);
+        return $product->fresh(['images', 'store', 'category', 'brand', 'condition', 'user.profile']);
     }
 
     private function resolveUniqueSlug(string $value, ?int $ignoreId = null): string

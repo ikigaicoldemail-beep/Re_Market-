@@ -74,6 +74,33 @@ return [
             'report' => false,
         ],
 
+        'store-images' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/stores'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage/stores',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'brand-logos' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/brands'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage/brands',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'promo-banners' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/promo-banners'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage/promo-banners',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

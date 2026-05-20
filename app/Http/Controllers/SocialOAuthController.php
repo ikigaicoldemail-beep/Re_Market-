@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Services\SocialAccountService;
+use Composer\CaBundle\CaBundle;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -151,29 +153,60 @@ class SocialOAuthController extends Controller
      * one payload per Page (with the Page's own access token for posting).
      * Otherwise falls back to the user-level profile.
      */
+    private function http(): PendingRequest
+    {
+        $verify = class_exists(CaBundle::class) ? CaBundle::getBundledCaBundlePath() : true;
+
+        return Http::withOptions(['verify' => $verify]);
+    }
+
     private function handleFacebookCallback(string $code): array
     {
         $version = config('services.facebook.graph_version', 'v22.0');
 
-        $tokenResp = Http::asJson()->get("https://graph.facebook.com/$version/oauth/access_token", [
+        $tokenResp = $this->http()->asJson()->get("https://graph.facebook.com/$version/oauth/access_token", [
             'client_id' => config('services.facebook.client_id'),
             'client_secret' => config('services.facebook.client_secret'),
             'redirect_uri' => $this->callbackUrl('facebook'),
             'code' => $code,
         ])->throw()->json();
 
-        $userToken = $tokenResp['access_token'] ?? null;
-        if (! $userToken) {
+        $shortUserToken = $tokenResp['access_token'] ?? null;
+        if (! $shortUserToken) {
             throw new \RuntimeException('Facebook did not return an access token.');
         }
 
+        // Exchange the short-lived user token (≈1 hour) for a long-lived one (~60 days).
+        // Page Access Tokens derived from a long-lived user token are themselves long-lived,
+        // so they keep working across re-logins instead of dying after an hour.
+        $longUserToken = $shortUserToken;
         $expiresAt = isset($tokenResp['expires_in'])
             ? now()->addSeconds((int) $tokenResp['expires_in'])->toIso8601String()
             : null;
 
-        // Fetch the Pages this user manages. Each entry has its own Page Access Token.
-        $pagesResp = Http::get("https://graph.facebook.com/$version/me/accounts", [
-            'access_token' => $userToken,
+        try {
+            $longResp = $this->http()->asJson()->get("https://graph.facebook.com/$version/oauth/access_token", [
+                'grant_type' => 'fb_exchange_token',
+                'client_id' => config('services.facebook.client_id'),
+                'client_secret' => config('services.facebook.client_secret'),
+                'fb_exchange_token' => $shortUserToken,
+            ])->throw()->json();
+
+            if (! empty($longResp['access_token'])) {
+                $longUserToken = $longResp['access_token'];
+                if (isset($longResp['expires_in'])) {
+                    $expiresAt = now()->addSeconds((int) $longResp['expires_in'])->toIso8601String();
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Facebook long-lived token exchange failed; falling back to short-lived token.', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Fetch the Pages this user manages — Page Access Tokens here inherit the long-lived lifetime.
+        $pagesResp = $this->http()->get("https://graph.facebook.com/$version/me/accounts", [
+            'access_token' => $longUserToken,
             'fields' => 'id,name,access_token,tasks',
         ])->throw()->json();
 
@@ -190,7 +223,7 @@ class SocialOAuthController extends Controller
                 'provider_user_id' => (string) $pageId,
                 'provider_account_name' => $page['name'] ?? null,
                 'access_token' => $pageToken,
-                'token_expires_at' => null, // Page tokens are long-lived
+                'token_expires_at' => $expiresAt,
                 'scopes' => $page['tasks'] ?? ['pages_manage_posts'],
             ];
         }
@@ -200,15 +233,15 @@ class SocialOAuthController extends Controller
         }
 
         // Fallback: no Pages — save the personal profile (won't be able to post to a Page).
-        $profile = Http::get("https://graph.facebook.com/$version/me", [
-            'access_token' => $userToken,
+        $profile = $this->http()->get("https://graph.facebook.com/$version/me", [
+            'access_token' => $longUserToken,
             'fields' => 'id,name,email',
         ])->throw()->json();
 
         return [[
             'provider_user_id' => (string) ($profile['id'] ?? Str::random(12)),
             'provider_account_name' => $profile['name'] ?? null,
-            'access_token' => $userToken,
+            'access_token' => $longUserToken,
             'token_expires_at' => $expiresAt,
             'scopes' => ['public_profile', 'email'],
         ]];
@@ -216,7 +249,7 @@ class SocialOAuthController extends Controller
 
     private function handleTikTokCallback(string $code): array
     {
-        $tokenResp = Http::asForm()->post('https://open.tiktokapis.com/v2/oauth/token/', [
+        $tokenResp = $this->http()->asForm()->post('https://open.tiktokapis.com/v2/oauth/token/', [
             'client_key' => config('services.tiktok.client_id'),
             'client_secret' => config('services.tiktok.client_secret'),
             'code' => $code,
@@ -230,7 +263,7 @@ class SocialOAuthController extends Controller
             throw new \RuntimeException('TikTok did not return an access token.');
         }
 
-        $profile = Http::withToken($accessToken)
+        $profile = $this->http()->withToken($accessToken)
             ->get('https://open.tiktokapis.com/v2/user/info/', ['fields' => 'open_id,display_name'])
             ->json('data.user', []);
 
