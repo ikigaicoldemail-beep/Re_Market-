@@ -7,13 +7,13 @@
 @include('components.toast')
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="cartPage()" x-init="fetch">
-    <h1 class="text-2xl font-semibold text-gray-900 mb-6">Shopping Cart</h1>
+    <h1 class="text-2xl font-semibold text-gray-900 mb-6" data-i18n="cart.title">Shopping Cart</h1>
 
-    <div x-show="loading" class="text-center py-20 text-gray-500">Loading cart...</div>
+    <div x-show="loading" class="text-center py-20 text-gray-500" data-i18n="cart.loading">Loading cart...</div>
 
     <div x-show="!loading && (!cart?.items?.length)" class="text-center py-20 bg-white rounded-xl border border-gray-200" style="display:none">
-        <p class="text-gray-500 mb-4">Your cart is empty.</p>
-        <a href="/" class="inline-block bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700">Start shopping</a>
+        <p class="text-gray-500 mb-4" data-i18n="cart.empty">Your cart is empty.</p>
+        <a href="/" class="inline-block bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700" data-i18n="cart.start_shopping">Start shopping</a>
     </div>
 
     <div x-show="!loading && cart?.items?.length > 0" class="grid lg:grid-cols-3 gap-6" style="display:none">
@@ -42,42 +42,42 @@
                             </div>
                             <div class="flex items-center gap-4">
                                 <span class="font-semibold text-gray-900" x-text="formatPrice(item.line_total_amount, cart.currency)"></span>
-                                <button @click="removeItem(item)" class="text-sm text-red-600 hover:text-red-700">Remove</button>
+                                <button @click="removeItem(item)" class="text-sm text-red-600 hover:text-red-700" data-i18n="cart.remove">Remove</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </template>
 
-            <button @click="clearCart()" class="text-sm text-gray-500 hover:text-red-600 mt-2">
+            <button @click="clearCart()" class="text-sm text-gray-500 hover:text-red-600 mt-2" data-i18n="cart.clear_all">
                 Clear entire cart
             </button>
         </div>
 
         <div class="lg:col-span-1">
             <div class="bg-white rounded-xl border border-gray-200 p-5 sticky top-20">
-                <h2 class="font-semibold text-gray-900 mb-4">Order Summary</h2>
+                <h2 class="font-semibold text-gray-900 mb-4" data-i18n="cart.summary">Order Summary</h2>
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
-                        <span class="text-gray-600">Subtotal</span>
+                        <span class="text-gray-600" data-i18n="cart.subtotal">Subtotal</span>
                         <span x-text="formatPrice(cart?.subtotal_amount, cart?.currency)"></span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-600">Shipping</span>
+                        <span class="text-gray-600" data-i18n="cart.shipping">Shipping</span>
                         <span x-text="formatPrice(cart?.shipping_amount, cart?.currency)"></span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-600">Discount</span>
+                        <span class="text-gray-600" data-i18n="cart.discount">Discount</span>
                         <span x-text="'-' + formatPrice(cart?.discount_amount, cart?.currency)"></span>
                     </div>
                     <hr class="my-3 border-gray-200">
                     <div class="flex justify-between text-base font-semibold">
-                        <span>Total</span>
+                        <span data-i18n="cart.total">Total</span>
                         <span x-text="formatPrice(cart?.total_amount, cart?.currency)"></span>
                     </div>
                 </div>
                 <a href="/checkout"
-                    class="block text-center w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 mt-5">
+                    class="block text-center w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 mt-5" data-i18n="cart.checkout">
                     Proceed to Checkout
                 </a>
             </div>

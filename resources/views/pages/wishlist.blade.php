@@ -7,13 +7,13 @@
 @include('components.toast')
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="wishlistPage()" x-init="fetch">
-    <h1 class="text-2xl font-semibold text-gray-900 mb-6">My Wishlist</h1>
+    <h1 class="text-2xl font-semibold text-gray-900 mb-6" data-i18n="wishlist.title">My Wishlist</h1>
 
-    <div x-show="loading" class="text-center py-20 text-gray-500">Loading...</div>
+    <div x-show="loading" class="text-center py-20 text-gray-500" data-i18n="wishlist.loading">Loading...</div>
 
     <div x-show="!loading && products.length === 0" class="text-center py-20 bg-white rounded-xl border border-gray-200" style="display:none">
-        <p class="text-gray-500 mb-4">Your wishlist is empty.</p>
-        <a href="/" class="inline-block bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700">Browse products</a>
+        <p class="text-gray-500 mb-4" data-i18n="wishlist.empty">Your wishlist is empty.</p>
+        <a href="/" class="inline-block bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700" data-i18n="wishlist.browse_products">Browse products</a>
     </div>
 
     <div x-show="!loading && products.length > 0" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" style="display:none">
@@ -38,11 +38,11 @@
                 </a>
                 <div class="p-3 pt-0 flex gap-2">
                     <button @click="addToCart(product)" :disabled="busy === product.id"
-                        class="flex-1 bg-indigo-600 text-white text-xs py-2 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50">
+                        class="flex-1 bg-indigo-600 text-white text-xs py-2 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50" data-i18n="product.add_to_cart">
                         Add to cart
                     </button>
                     <button @click="remove(product)" :disabled="busy === product.id"
-                        class="px-3 py-2 border border-gray-300 rounded-lg text-xs text-red-600 hover:bg-red-50">
+                        class="px-3 py-2 border border-gray-300 rounded-lg text-xs text-red-600 hover:bg-red-50" data-i18n="wishlist.remove">
                         Remove
                     </button>
                 </div>

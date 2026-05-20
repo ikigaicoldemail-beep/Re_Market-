@@ -1,4 +1,5 @@
 import './bootstrap';
+import './i18n';
 import Alpine from 'alpinejs';
 
 window.Alpine = Alpine;
@@ -45,6 +46,48 @@ document.addEventListener('alpine:init', () => {
             } catch {
                 this.count = 0;
             }
+        },
+    });
+
+    Alpine.store('compare', {
+        ids: (() => {
+            try {
+                const raw = localStorage.getItem('compare_ids') || '[]';
+                const arr = JSON.parse(raw);
+                return Array.isArray(arr) ? arr.map(Number).filter(Boolean) : [];
+            } catch {
+                return [];
+            }
+        })(),
+        get count() { return this.ids.length; },
+        has(id) { return this.ids.includes(Number(id)); },
+        toggle(id) {
+            const n = Number(id);
+            if (!n) return;
+            const idx = this.ids.indexOf(n);
+            if (idx >= 0) {
+                this.ids.splice(idx, 1);
+            } else {
+                if (this.ids.length >= 4) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: 'You can compare up to 4 products at once.' } }));
+                    return;
+                }
+                this.ids.push(n);
+            }
+            this.persist();
+        },
+        remove(id) {
+            this.ids = this.ids.filter(x => x !== Number(id));
+            this.persist();
+        },
+        clear() {
+            this.ids = [];
+            this.persist();
+        },
+        persist() {
+            try {
+                localStorage.setItem('compare_ids', JSON.stringify(this.ids));
+            } catch {}
         },
     });
 

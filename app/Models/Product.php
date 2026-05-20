@@ -19,8 +19,10 @@ class Product extends Model
         'slug',
         'sku',
         'description',
+        'specs',
         'price',
         'price_amount',
+        'original_price_amount',
         'currency',
         'image',
         'location',
@@ -32,10 +34,13 @@ class Product extends Model
         'moderation_status',
         'visibility',
         'allow_offers',
+        'is_featured',
+        'featured_at',
         'published_at',
         'user_id',
         'store_id',
         'category_id',
+        'brand_id',
         'product_condition_id',
         'schedule_at',
         'auto_post',
@@ -45,8 +50,11 @@ class Product extends Model
     {
         return [
             'allow_offers' => 'boolean',
+            'is_featured' => 'boolean',
+            'featured_at' => 'datetime',
             'published_at' => 'datetime',
             'schedule_at' => 'datetime',
+            'specs' => 'array',
         ];
     }
 
@@ -65,6 +73,11 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
     public function condition(): BelongsTo
     {
         return $this->belongsTo(ProductCondition::class, 'product_condition_id');
@@ -73,6 +86,11 @@ class Product extends Model
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function wishlistedBy(): BelongsToMany

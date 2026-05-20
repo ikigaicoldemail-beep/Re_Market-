@@ -9,8 +9,12 @@
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="scheduledPosts()" x-init="fetch">
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-semibold text-gray-900">Scheduled Posts</h1>
-            <p class="text-sm text-gray-500 mt-1">Posts queued to publish at a future time.</p>
+            <h1 class="text-2xl font-semibold text-gray-900">Scheduled Social Posts</h1>
+            <p class="text-sm text-gray-500 mt-1">
+                Facebook posts queued to publish at a future time.
+                To schedule when a product becomes visible on this website instead, use the
+                <a href="{{ route('me.products.create') }}" class="text-indigo-600 underline">product form's "Schedule publishing"</a> option.
+            </p>
         </div>
         <button @click="showCreate = true; loadCreateOptions()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">
             + Schedule Post
@@ -69,9 +73,10 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Post to *</label>
                     <select x-model="form.post_to"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                        <option value="marketplace">Marketplace account</option>
-                        <option value="user_account">My connected account</option>
+                        <option value="marketplace">Marketplace's Facebook page</option>
+                        <option value="user_account">My connected Facebook account</option>
                     </select>
+                    <p class="text-xs text-gray-500 mt-1">Both options publish to Facebook — this page does not control website visibility.</p>
                 </div>
 
                 <div x-show="form.post_to === 'user_account'" style="display:none">

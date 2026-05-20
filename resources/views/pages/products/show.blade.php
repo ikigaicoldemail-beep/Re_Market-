@@ -6,11 +6,11 @@
 @include('components.toast')
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="productDetail()" x-init="init">
-    <div x-show="loading" class="text-center py-20 text-gray-500">Loading product...</div>
+    <div x-show="loading" class="text-center py-20 text-gray-500" data-i18n="product.loading">Loading product...</div>
 
     <div x-show="error" class="text-center py-20" style="display:none">
         <p class="text-red-600 mb-4" x-text="error"></p>
-        <a href="/" class="text-indigo-600 hover:text-indigo-700">Back to browse</a>
+        <a href="/" class="text-indigo-600 hover:text-indigo-700" data-i18n="product.back_to_browse">Back to browse</a>
     </div>
 
     <div x-show="product && !loading" class="grid lg:grid-cols-2 gap-8" style="display:none">
@@ -49,61 +49,148 @@
                     x-text="formatRelativeTime(product?.published_at || product?.created_at)" style="display:none"></span>
             </div>
 
-            <p class="text-3xl font-bold text-indigo-600 mt-4" x-text="formatPrice(product?.price_amount, product?.currency)"></p>
+            <div class="mt-4 flex items-baseline gap-3 flex-wrap">
+                <p class="text-3xl font-bold text-indigo-600" x-text="formatPrice(activePrice, product?.currency)"></p>
+                <p x-show="activeOriginalPrice && activeOriginalPrice > activePrice"
+                    class="text-lg text-gray-400 line-through" style="display:none"
+                    x-text="formatPrice(activeOriginalPrice, product?.currency)"></p>
+                <span x-show="activeOriginalPrice && activeOriginalPrice > activePrice"
+                    class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700" style="display:none"
+                    x-text="'-' + Math.round((1 - activePrice/activeOriginalPrice) * 100) + '%'"></span>
+            </div>
 
-            <p class="text-sm text-gray-600 mt-1" x-show="product?.stock_quantity > 0" style="display:none">
-                <span x-text="product?.stock_quantity"></span> in stock
+            {{-- Variant picker --}}
+            <div x-show="hasVariants" class="mt-4" style="display:none">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2" data-i18n="product.choose_variant">Choose variant</p>
+                <div class="flex flex-wrap gap-2">
+                    <template x-for="v in product?.variants || []" :key="v.id">
+                        <button @click="selectedVariantId = v.id"
+                            :disabled="v.stock_quantity <= 0"
+                            :class="selectedVariantId === v.id ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'"
+                            class="border rounded-lg px-3 py-1.5 text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
+                            <span x-text="v.label"></span>
+                            <span x-show="v.stock_quantity <= 0" class="ml-1 text-xs text-red-600" style="display:none">· out</span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <p class="text-sm text-gray-600 mt-2" x-show="activeStock > 0" style="display:none">
+                <span x-text="activeStock"></span> <span data-i18n="product.in_stock">in stock</span>
             </p>
-            <p class="text-sm text-red-600 mt-1" x-show="product?.stock_quantity <= 0" style="display:none">Out of stock</p>
+            <p class="text-sm text-red-600 mt-2" x-show="activeStock <= 0" data-i18n="product.out_of_stock" style="display:none">Out of stock</p>
+
+            {{-- Brand pill --}}
+            <a x-show="product?.brand" :href="'/?brand=' + product?.brand?.id"
+                class="inline-flex items-center gap-2 mt-3 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm hover:bg-gray-50" style="display:none">
+                <template x-if="product?.brand?.logo_url">
+                    <img :src="product?.brand?.logo_url" class="w-5 h-5 rounded object-contain">
+                </template>
+                <span class="font-medium text-gray-700" x-text="product?.brand?.name"></span>
+            </a>
 
             {{-- Seller / Store --}}
             <div class="mt-6 p-4 bg-white rounded-xl border border-gray-200" x-show="product?.store" style="display:none">
-                <p class="text-xs text-gray-500 mb-1">Sold by</p>
-                <p class="font-medium text-gray-900" x-text="product?.store?.name"></p>
+                <p class="text-xs text-gray-500 mb-1" data-i18n="product.sold_by">Sold by</p>
+                <div class="flex items-center justify-between gap-3">
+                    <a :href="'/stores/' + product?.store?.id" class="font-medium text-gray-900 hover:text-indigo-600" x-text="product?.store?.name"></a>
+                    <div class="flex gap-2">
+                        <a x-show="product?.store?.telegram_url" :href="product?.store?.telegram_url" target="_blank" rel="noopener"
+                            title="Chat on Telegram"
+                            class="w-9 h-9 rounded-full bg-sky-500 text-white flex items-center justify-center hover:bg-sky-600" style="display:none">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M21.426 2.574L2.13 9.97c-.948.36-.943.86-.171 1.094l4.94 1.541 11.43-7.214c.54-.328 1.034-.151.63.21l-9.258 8.36-.357 5.346c.357 0 .515-.164.715-.358l1.717-1.667 3.563 2.633c.658.363 1.13.175 1.292-.611l2.342-10.99c.243-1.122-.382-1.587-1.547-1.14z"/></svg>
+                        </a>
+                        <a x-show="product?.store?.messenger_url" :href="product?.store?.messenger_url" target="_blank" rel="noopener"
+                            title="Chat on Messenger"
+                            class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700" style="display:none">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.835 1.387 5.36 3.55 7.06V22l3.245-1.78c.864.24 1.78.367 2.705.367 5.523 0 10-4.145 10-9.243C22 6.145 17.523 2 12 2zm.987 12.421l-2.55-2.717-4.937 2.717 5.43-5.764 2.61 2.717 4.876-2.717-5.43 5.764z"/></svg>
+                        </a>
+                    </div>
+                </div>
             </div>
 
             {{-- Actions --}}
             <div class="mt-6 space-y-3">
                 <button @click="addToCart()" :disabled="addingToCart || product?.stock_quantity <= 0"
                     class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span x-show="!addingToCart">Add to cart</span>
+                    <span x-show="!addingToCart" data-i18n="product.add_to_cart">Add to cart</span>
                     <span x-show="addingToCart" style="display:none">Adding...</span>
                 </button>
 
                 <div class="grid grid-cols-2 gap-3">
                     <button @click="toggleWishlist()" :disabled="togglingWishlist"
                         class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-                        <span x-show="!inWishlist">Save to wishlist</span>
-                        <span x-show="inWishlist" style="display:none">In wishlist</span>
+                        <span x-show="!inWishlist" data-i18n="product.save_wishlist">Save to wishlist</span>
+                        <span x-show="inWishlist" data-i18n="product.in_wishlist" style="display:none">In wishlist</span>
                     </button>
-                    <button @click="showShare = true" class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50">
+                    <button @click="showShare = true" class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50" data-i18n="product.share">
                         Share
                     </button>
                 </div>
 
+                <button @click="$store.compare.toggle(product.id)"
+                    :class="$store.compare.has(product?.id) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'"
+                    class="w-full border py-2.5 rounded-lg font-medium transition inline-flex items-center justify-center gap-2">
+                    <template x-if="!$store.compare.has(product?.id)">
+                        <span class="inline-flex items-center gap-2">
+                            <x-heroicon-o-arrows-right-left class="w-4 h-4"/>
+                            <span data-i18n="product.compare_add">Add to compare</span>
+                        </span>
+                    </template>
+                    <template x-if="$store.compare.has(product?.id)">
+                        <span class="inline-flex items-center gap-2">
+                            <x-heroicon-s-check class="w-4 h-4"/>
+                            <span data-i18n="product.compare_in">In compare</span>
+                        </span>
+                    </template>
+                </button>
+
                 <button @click="messageSeller()" :disabled="messagingSeller"
                     x-show="product?.user_id && (!window.auth.user() || product.user_id !== window.auth.user().id)"
-                    class="w-full mt-3 border border-indigo-300 text-indigo-700 py-2.5 rounded-lg font-medium hover:bg-indigo-50 disabled:opacity-50"
+                    class="w-full mt-3 border border-indigo-300 text-indigo-700 py-2.5 rounded-lg font-medium hover:bg-indigo-50 disabled:opacity-50 inline-flex items-center justify-center gap-2"
                     style="display:none">
-                    <span x-show="!messagingSeller">💬 Message seller</span>
+                    <template x-if="!messagingSeller">
+                        <span class="inline-flex items-center gap-2">
+                            <x-heroicon-o-chat-bubble-left-right class="w-4 h-4"/>
+                            <span data-i18n="product.message_seller">Message seller</span>
+                        </span>
+                    </template>
                     <span x-show="messagingSeller" style="display:none">Opening chat...</span>
                 </button>
 
-                <button @click="findSimilar()" class="w-full mt-3 text-sm text-indigo-600 hover:text-indigo-700 underline">
+                <button @click="findSimilar()" class="w-full mt-3 text-sm text-indigo-600 hover:text-indigo-700 underline" data-i18n="product.find_similar">
                     Find visually similar items
                 </button>
 
                 <button @click="openReport()"
                     x-show="product?.user_id && (!window.auth.user() || product.user_id !== window.auth.user().id)"
-                    class="w-full mt-1 text-xs text-gray-500 hover:text-red-600" style="display:none">
-                    🚩 Report this listing
+                    class="w-full mt-1 text-xs text-gray-500 hover:text-red-600 inline-flex items-center justify-center gap-1.5" style="display:none">
+                    <x-heroicon-o-flag class="w-3.5 h-3.5"/>
+                    <span data-i18n="product.report">Report this listing</span>
                 </button>
             </div>
 
             {{-- Description --}}
             <div class="mt-8">
-                <h2 class="font-semibold text-gray-900 mb-2">Description</h2>
+                <h2 class="font-semibold text-gray-900 mb-2" data-i18n="product.description">Description</h2>
                 <p class="text-gray-700 whitespace-pre-line" x-text="product?.description"></p>
+            </div>
+
+            {{-- Specifications --}}
+            <div class="mt-8" x-show="hasSpecs" style="display:none">
+                <h2 class="font-semibold text-gray-900 mb-3" data-i18n="product.specifications">Specifications</h2>
+                <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <table class="w-full text-sm">
+                        <tbody class="divide-y divide-gray-100">
+                            <template x-for="row in specEntries" :key="row[0]">
+                                <tr>
+                                    <td class="px-4 py-2.5 bg-gray-50 text-gray-600 font-medium w-1/3" x-text="row[0]"></td>
+                                    <td class="px-4 py-2.5 text-gray-900" x-text="row[1]"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -111,7 +198,7 @@
     {{-- Reviews section --}}
     <div x-show="product && !loading" class="mt-12 max-w-4xl" style="display:none">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-900">Reviews</h2>
+            <h2 class="text-xl font-semibold text-gray-900" data-i18n="product.reviews">Reviews</h2>
             <button x-show="canWriteReview" @click="openReview()"
                 class="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700" style="display:none">
                 <span x-text="myReview ? 'Edit my review' : 'Write a review'"></span>
@@ -358,6 +445,33 @@
             },
             get canWriteReview() {
                 return this.reviewEligibility.eligible && !this.myReview;
+            },
+            get hasSpecs() {
+                return this.product?.specs && typeof this.product.specs === 'object' && Object.keys(this.product.specs).length > 0;
+            },
+            get specEntries() {
+                return this.product?.specs ? Object.entries(this.product.specs) : [];
+            },
+            selectedVariantId: null,
+            get hasVariants() {
+                return Array.isArray(this.product?.variants) && this.product.variants.length > 0;
+            },
+            get selectedVariant() {
+                if (!this.hasVariants) return null;
+                const list = this.product.variants;
+                if (this.selectedVariantId) {
+                    return list.find(v => v.id === this.selectedVariantId) || list[0];
+                }
+                return list.find(v => v.is_default) || list[0];
+            },
+            get activePrice() {
+                return this.selectedVariant?.price_amount ?? this.product?.price_amount;
+            },
+            get activeOriginalPrice() {
+                return this.selectedVariant?.original_price_amount ?? this.product?.original_price_amount;
+            },
+            get activeStock() {
+                return this.selectedVariant?.stock_quantity ?? this.product?.stock_quantity;
             },
             async checkWishlist() {
                 if (!window.auth.isLoggedIn() || !this.product) return;

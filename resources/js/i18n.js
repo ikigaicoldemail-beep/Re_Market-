@@ -1,0 +1,501 @@
+// Tiny client-side i18n. Strings live in en/km maps; use window.t('key') in Blade/Alpine.
+// Locale persists in localStorage('locale'). Default: en.
+// Calling window.setLocale('km'|'en') re-applies all [data-i18n] attributes and dispatches an
+// 'i18n:changed' event so Alpine components can react.
+
+const DICTS = {
+    en: {
+        // ─── nav / header / dropdown ───
+        'nav.browse': 'Browse',
+        'nav.categories': 'Categories',
+        'nav.shops': 'Shops',
+        'nav.visual_search': 'Visual Search',
+        'nav.sell': '+ Sell',
+        'nav.wishlist': 'Wishlist',
+        'nav.signin': 'Sign in',
+        'nav.signup': 'Sign up',
+        'nav.signout': 'Sign out',
+        'nav.profile': 'Profile',
+        'nav.orders': 'My Orders',
+        'nav.messages': 'Messages',
+        'nav.addresses': 'Addresses',
+        'nav.my_store': 'My Store',
+        'nav.my_products': 'My Products',
+        'nav.account': 'Account',
+        'nav.selling': 'Selling',
+        'nav.admin': 'Admin',
+        'nav.dashboard': 'Dashboard',
+        'nav.about_us': 'About Us',
+        'nav.my_account': 'My Account',
+        'nav.order_tracking': 'Order Tracking',
+        'nav.secure_delivery': '100% Secure delivery without contacting the courier',
+        'nav.need_help': 'Need help? Call Us:',
+        'nav.cart': 'Cart',
+        'nav.compare': 'Compare',
+        'nav.search': 'Search',
+        'nav.browse_all_categories': 'Browse All Categories',
+        'nav.support_center': '24/7 Support Center',
+        'nav.scheduled_listings': 'Scheduled Listings',
+        'nav.social_accounts': 'Social Accounts',
+        'nav.scheduled_posts': 'Scheduled Posts',
+        // ─── home ───
+        'home.shop_by_brand': 'Shop by brand',
+        'home.all_brands': 'All brands',
+        'home.categories': 'Categories',
+        'home.show_all_categories': 'Show all categories',
+        'home.province': 'Province',
+        'home.all_provinces': 'All provinces',
+        'home.trending': 'Trending',
+        'home.view_all': 'View all',
+        'home.browse': 'Browse',
+        'home.no_products': 'No products found. Try adjusting your filters.',
+        'home.loading_products': 'Loading products...',
+        // ─── filters ───
+        'filters.title': 'Filters',
+        'filters.search': 'Search',
+        'filters.search_placeholder': 'Title, description...',
+        'filters.condition': 'Condition',
+        'filters.any_condition': 'Any condition',
+        'filters.price_range': 'Price range',
+        'filters.min': 'Min',
+        'filters.max': 'Max',
+        'filters.price_hint': 'In cents (e.g. 1000 = $10)',
+        'filters.sort_by': 'Sort by',
+        'filters.sort_latest': 'Newest first',
+        'filters.sort_oldest': 'Oldest first',
+        'filters.sort_price_asc': 'Price: low to high',
+        'filters.sort_price_desc': 'Price: high to low',
+        'filters.clear': 'Clear filters',
+        // ─── product show ───
+        'product.add_to_cart': 'Add to cart',
+        'product.adding': 'Adding...',
+        'product.save_wishlist': 'Save to wishlist',
+        'product.in_wishlist': 'In wishlist',
+        'product.share': 'Share',
+        'product.compare_add': 'Add to compare',
+        'product.compare_in': 'In compare',
+        'product.message_seller': 'Message seller',
+        'product.report': 'Report this listing',
+        'product.description': 'Description',
+        'product.specifications': 'Specifications',
+        'product.out_of_stock': 'Out of stock',
+        'product.in_stock': 'in stock',
+        'product.choose_variant': 'Choose variant',
+        'product.variant_out': 'out',
+        'product.loading': 'Loading product...',
+        'product.back_to_browse': 'Back to browse',
+        'product.find_similar': 'Find visually similar items',
+        'product.similar_title': 'Visually similar products',
+        'product.opening_chat': 'Opening chat...',
+        'product.sold_by': 'Sold by',
+        'product.reviews': 'Reviews',
+        'product.write_review': 'Write a review',
+        'product.edit_review': 'Edit my review',
+        'product.no_reviews': 'No reviews yet.',
+        'product.first_to_review': 'Be the first to leave one!',
+        // ─── cart ───
+        'cart.title': 'Shopping Cart',
+        'cart.loading': 'Loading cart...',
+        'cart.empty': 'Your cart is empty.',
+        'cart.start_shopping': 'Start shopping',
+        'cart.remove': 'Remove',
+        'cart.clear_all': 'Clear entire cart',
+        'cart.summary': 'Order Summary',
+        'cart.subtotal': 'Subtotal',
+        'cart.shipping': 'Shipping',
+        'cart.discount': 'Discount',
+        'cart.total': 'Total',
+        'cart.checkout': 'Proceed to Checkout',
+        // ─── checkout ───
+        'checkout.title': 'Checkout',
+        'checkout.loading': 'Loading...',
+        'checkout.shipping_address': 'Shipping Address',
+        'checkout.add_new': '+ Add new',
+        'checkout.cancel': 'Cancel',
+        'checkout.no_addresses': 'No saved addresses. Add one to continue.',
+        'checkout.order_notes': 'Order Notes (optional)',
+        'checkout.notes_placeholder': 'Any special instructions...',
+        'checkout.order_summary': 'Order Summary',
+        'checkout.place_order': 'Place Order',
+        'checkout.placing_order': 'Placing order...',
+        'checkout.select_address': 'Select a shipping address to continue.',
+        // ─── wishlist ───
+        'wishlist.title': 'My Wishlist',
+        'wishlist.loading': 'Loading...',
+        'wishlist.empty': 'Your wishlist is empty.',
+        'wishlist.browse_products': 'Browse products',
+        'wishlist.remove': 'Remove',
+        // ─── orders ───
+        'orders.title': 'My Orders',
+        'orders.loading': 'Loading orders...',
+        'orders.empty': "You haven't placed any orders yet.",
+        'orders.browse_products': 'Browse products',
+        'orders.order_number': 'Order #',
+        'orders.payment': 'Payment',
+        'orders.items_count': 'item(s)',
+        'orders.back': 'Back to my orders',
+        'orders.shipping_to': 'Shipping to',
+        'orders.from': 'From',
+        'orders.items': 'Items',
+        'orders.qty': 'Qty',
+        'orders.summary': 'Summary',
+        'orders.subtotal': 'Subtotal',
+        'orders.shipping': 'Shipping',
+        'orders.discount': 'Discount',
+        'orders.total': 'Total',
+        'orders.notes': 'Notes',
+        'orders.cancel_order': 'Cancel order',
+        'orders.cancel_this': 'Cancel this order',
+        // ─── categories ───
+        'categories.title': 'Shop by Category',
+        'categories.subtitle': 'Pick a category to dive into subcategories and products.',
+        'categories.loading': 'Loading categories...',
+        'categories.empty': 'No categories available yet.',
+        'categories.subcategories': 'Subcategories',
+        'categories.all': 'All',
+        'categories.products_in': 'Products in',
+        'categories.no_products': 'No products in this category yet.',
+        'categories.back': 'Back to categories',
+        'categories.not_found': 'Category not found.',
+        // ─── stores ───
+        'stores.title': 'Discover Shops',
+        'stores.subtitle': 'Browse independent sellers and explore their full catalogue.',
+        'stores.search_placeholder': 'Search shops...',
+        'stores.city_placeholder': 'City',
+        'stores.sort_latest': 'Newest',
+        'stores.sort_followers': 'Most followers',
+        'stores.sort_name': 'Name (A → Z)',
+        'stores.all_shops': 'All shops',
+        'stores.loading': 'Loading shops...',
+        'stores.empty': 'No shops match your filters.',
+        'stores.loading_store': 'Loading store...',
+        'stores.follow': 'Follow',
+        'stores.following': 'Following',
+        'stores.location': 'Location',
+        'stores.get_directions': 'Get directions',
+        'stores.products': 'Products',
+        'stores.no_products': 'This store has no products listed yet.',
+        // ─── compare ───
+        'compare.title': 'Compare products',
+        'compare.subtitle': 'Side-by-side comparison of up to 4 products.',
+        'compare.clear_all': 'Clear all',
+        'compare.empty': 'No products in your compare list yet.',
+        'compare.hint': 'Browse products and tap "Add to compare" to add up to 4 items.',
+        'compare.browse_products': 'Browse products',
+        'compare.col_product': 'Product',
+        'compare.col_price': 'Price',
+        'compare.col_brand': 'Brand',
+        'compare.col_category': 'Category',
+        'compare.col_condition': 'Condition',
+        'compare.col_location': 'Location',
+        'compare.col_stock': 'Stock',
+        'compare.view': 'View',
+        // ─── auth ───
+        'auth.signin_title': 'Welcome back',
+        'auth.signin_subtitle': 'Sign in to continue shopping',
+        'auth.session_expired': 'Your session expired. Please sign in again.',
+        'auth.email': 'Email',
+        'auth.password': 'Password',
+        'auth.forgot': 'Forgot?',
+        'auth.signing_in': 'Signing in...',
+        'auth.no_account': "Don't have an account?",
+        'auth.signup_title': 'Create your account',
+        'auth.signup_subtitle': 'Start buying and selling today',
+        'auth.full_name': 'Full name',
+        'auth.phone_optional': 'Phone (optional)',
+        'auth.password_hint': 'Must include letters and numbers, 8+ characters.',
+        'auth.confirm_password': 'Confirm password',
+        'auth.create_account': 'Create account',
+        'auth.creating': 'Creating...',
+        'auth.have_account': 'Already have an account?',
+        'auth.reset_title': 'Reset your password',
+        'auth.reset_subtitle': "Enter your email and we'll send you a reset link.",
+        'auth.send_link': 'Send reset link',
+        'auth.sending': 'Sending...',
+        'auth.back_to_signin': 'Back to sign in',
+        // ─── common ───
+        'common.previous': 'Previous',
+        'common.next': 'Next',
+        'common.items': 'items',
+        'common.loading': 'Loading...',
+    },
+    km: {
+        // ─── nav / header / dropdown ───
+        'nav.browse': 'រកមើល',
+        'nav.categories': 'ប្រភេទ',
+        'nav.shops': 'ហាង',
+        'nav.visual_search': 'ស្វែងរកដោយរូបភាព',
+        'nav.sell': '+ លក់',
+        'nav.wishlist': 'បញ្ជីប្រាថ្នា',
+        'nav.signin': 'ចូល',
+        'nav.signup': 'ចុះឈ្មោះ',
+        'nav.signout': 'ចេញ',
+        'nav.profile': 'ប្រវត្តិរូប',
+        'nav.orders': 'ការបញ្ជាទិញរបស់ខ្ញុំ',
+        'nav.messages': 'សារ',
+        'nav.addresses': 'អាសយដ្ឋាន',
+        'nav.my_store': 'ហាងរបស់ខ្ញុំ',
+        'nav.my_products': 'ផលិតផលរបស់ខ្ញុំ',
+        'nav.account': 'គណនី',
+        'nav.selling': 'ការលក់',
+        'nav.admin': 'អ្នកគ្រប់គ្រង',
+        'nav.dashboard': 'ផ្ទាំងគ្រប់គ្រង',
+        'nav.about_us': 'អំពីយើង',
+        'nav.my_account': 'គណនីរបស់ខ្ញុំ',
+        'nav.order_tracking': 'តាមដានការបញ្ជាទិញ',
+        'nav.secure_delivery': 'ការដឹកជញ្ជូនមានសុវត្ថិភាព ១០០% ដោយមិនទាក់ទងអ្នកដឹក',
+        'nav.need_help': 'ត្រូវការជំនួយ? ទូរសព្ទមកយើង៖',
+        'nav.cart': 'កន្ត្រក',
+        'nav.compare': 'ប្រៀបធៀប',
+        'nav.search': 'ស្វែងរក',
+        'nav.browse_all_categories': 'រកមើលប្រភេទទាំងអស់',
+        'nav.support_center': 'មជ្ឈមណ្ឌលជំនួយ ២៤/៧',
+        'nav.scheduled_listings': 'បញ្ជីដាក់កាលវិភាគ',
+        'nav.social_accounts': 'គណនីសង្គម',
+        'nav.scheduled_posts': 'ប្រកាសដាក់កាលវិភាគ',
+        // ─── home ───
+        'home.shop_by_brand': 'ទិញតាមម៉ាក',
+        'home.all_brands': 'ម៉ាកទាំងអស់',
+        'home.categories': 'ប្រភេទ',
+        'home.show_all_categories': 'បង្ហាញប្រភេទទាំងអស់',
+        'home.province': 'ខេត្ត',
+        'home.all_provinces': 'ខេត្តទាំងអស់',
+        'home.trending': 'កំពុងពេញនិយម',
+        'home.view_all': 'មើលទាំងអស់',
+        'home.browse': 'រកមើល',
+        'home.no_products': 'រកមិនឃើញផលិតផល។ សូមកែតម្រូវតម្រងរបស់អ្នក។',
+        'home.loading_products': 'កំពុងផ្ទុកផលិតផល...',
+        // ─── filters ───
+        'filters.title': 'តម្រង',
+        'filters.search': 'ស្វែងរក',
+        'filters.search_placeholder': 'ចំណងជើង, ការពិពណ៌នា...',
+        'filters.condition': 'លក្ខខណ្ឌ',
+        'filters.any_condition': 'លក្ខខណ្ឌណាមួយ',
+        'filters.price_range': 'ជួរតម្លៃ',
+        'filters.min': 'អប្បបរមា',
+        'filters.max': 'អតិបរមា',
+        'filters.price_hint': 'ជាសេន (ឧ. ១០០០ = $10)',
+        'filters.sort_by': 'តម្រៀបតាម',
+        'filters.sort_latest': 'ថ្មីបំផុត',
+        'filters.sort_oldest': 'ចាស់បំផុត',
+        'filters.sort_price_asc': 'តម្លៃ៖ ទាបទៅខ្ពស់',
+        'filters.sort_price_desc': 'តម្លៃ៖ ខ្ពស់ទៅទាប',
+        'filters.clear': 'លុបតម្រង',
+        // ─── product show ───
+        'product.add_to_cart': 'បន្ថែមទៅកន្ត្រក',
+        'product.adding': 'កំពុងបន្ថែម...',
+        'product.save_wishlist': 'រក្សាទុក',
+        'product.in_wishlist': 'ក្នុងបញ្ជី',
+        'product.share': 'ចែករំលែក',
+        'product.compare_add': 'បន្ថែមដើម្បីប្រៀបធៀប',
+        'product.compare_in': 'ក្នុងការប្រៀបធៀប',
+        'product.message_seller': 'ផ្ញើសារទៅអ្នកលក់',
+        'product.report': 'រាយការណ៍',
+        'product.description': 'ការពិពណ៌នា',
+        'product.specifications': 'លក្ខណៈបច្ចេកទេស',
+        'product.out_of_stock': 'អស់ស្តុក',
+        'product.in_stock': 'នៅក្នុងស្តុក',
+        'product.choose_variant': 'ជ្រើសរើសប្រភេទ',
+        'product.variant_out': 'អស់',
+        'product.loading': 'កំពុងផ្ទុកផលិតផល...',
+        'product.back_to_browse': 'ត្រឡប់ទៅរកមើល',
+        'product.find_similar': 'រកផលិតផលស្រដៀងគ្នាដោយរូបភាព',
+        'product.similar_title': 'ផលិតផលស្រដៀងគ្នាដោយរូបភាព',
+        'product.opening_chat': 'កំពុងបើកការសន្ទនា...',
+        'product.sold_by': 'លក់ដោយ',
+        'product.reviews': 'ការវាយតម្លៃ',
+        'product.write_review': 'សរសេរការវាយតម្លៃ',
+        'product.edit_review': 'កែការវាយតម្លៃរបស់ខ្ញុំ',
+        'product.no_reviews': 'មិនមានការវាយតម្លៃនៅឡើយ។',
+        'product.first_to_review': 'ក្លាយជាអ្នកដំបូងដែលបន្សល់ការវាយតម្លៃ!',
+        // ─── cart ───
+        'cart.title': 'កន្ត្រកទំនិញ',
+        'cart.loading': 'កំពុងផ្ទុកកន្ត្រក...',
+        'cart.empty': 'កន្ត្រករបស់អ្នកគឺទទេ។',
+        'cart.start_shopping': 'ចាប់ផ្តើមទិញទំនិញ',
+        'cart.remove': 'យកចេញ',
+        'cart.clear_all': 'លុបកន្ត្រកទាំងមូល',
+        'cart.summary': 'សេចក្តីសង្ខេបការបញ្ជាទិញ',
+        'cart.subtotal': 'សរុបរង',
+        'cart.shipping': 'ការដឹកជញ្ជូន',
+        'cart.discount': 'បញ្ចុះតម្លៃ',
+        'cart.total': 'សរុប',
+        'cart.checkout': 'បន្តទៅទូទាត់',
+        // ─── checkout ───
+        'checkout.title': 'ទូទាត់',
+        'checkout.loading': 'កំពុងផ្ទុក...',
+        'checkout.shipping_address': 'អាសយដ្ឋានដឹកជញ្ជូន',
+        'checkout.add_new': '+ បន្ថែមថ្មី',
+        'checkout.cancel': 'បោះបង់',
+        'checkout.no_addresses': 'មិនមានអាសយដ្ឋានបានរក្សាទុក។ បន្ថែមមួយដើម្បីបន្ត។',
+        'checkout.order_notes': 'កំណត់ចំណាំការបញ្ជាទិញ (ស្រេចចិត្ត)',
+        'checkout.notes_placeholder': 'ការណែនាំពិសេសណាមួយ...',
+        'checkout.order_summary': 'សេចក្តីសង្ខេបការបញ្ជាទិញ',
+        'checkout.place_order': 'ដាក់ការបញ្ជាទិញ',
+        'checkout.placing_order': 'កំពុងដាក់ការបញ្ជាទិញ...',
+        'checkout.select_address': 'ជ្រើសរើសអាសយដ្ឋានដឹកជញ្ជូនដើម្បីបន្ត។',
+        // ─── wishlist ───
+        'wishlist.title': 'បញ្ជីប្រាថ្នារបស់ខ្ញុំ',
+        'wishlist.loading': 'កំពុងផ្ទុក...',
+        'wishlist.empty': 'បញ្ជីប្រាថ្នារបស់អ្នកគឺទទេ។',
+        'wishlist.browse_products': 'រកមើលផលិតផល',
+        'wishlist.remove': 'យកចេញ',
+        // ─── orders ───
+        'orders.title': 'ការបញ្ជាទិញរបស់ខ្ញុំ',
+        'orders.loading': 'កំពុងផ្ទុកការបញ្ជាទិញ...',
+        'orders.empty': 'អ្នកមិនទាន់បានដាក់ការបញ្ជាទិញនៅឡើយ។',
+        'orders.browse_products': 'រកមើលផលិតផល',
+        'orders.order_number': 'ការបញ្ជាទិញ #',
+        'orders.payment': 'ការទូទាត់',
+        'orders.items_count': 'ធាតុ',
+        'orders.back': 'ត្រឡប់ទៅការបញ្ជាទិញ',
+        'orders.shipping_to': 'ដឹកជញ្ជូនទៅ',
+        'orders.from': 'ពី',
+        'orders.items': 'ធាតុ',
+        'orders.qty': 'ចំនួន',
+        'orders.summary': 'សេចក្តីសង្ខេប',
+        'orders.subtotal': 'សរុបរង',
+        'orders.shipping': 'ការដឹកជញ្ជូន',
+        'orders.discount': 'បញ្ចុះតម្លៃ',
+        'orders.total': 'សរុប',
+        'orders.notes': 'កំណត់ចំណាំ',
+        'orders.cancel_order': 'បោះបង់ការបញ្ជាទិញ',
+        'orders.cancel_this': 'បោះបង់ការបញ្ជាទិញនេះ',
+        // ─── categories ───
+        'categories.title': 'ទិញតាមប្រភេទ',
+        'categories.subtitle': 'ជ្រើសរើសប្រភេទដើម្បីមើលប្រភេទរងនិងផលិតផល។',
+        'categories.loading': 'កំពុងផ្ទុកប្រភេទ...',
+        'categories.empty': 'មិនទាន់មានប្រភេទនៅឡើយ។',
+        'categories.subcategories': 'ប្រភេទរង',
+        'categories.all': 'ទាំងអស់',
+        'categories.products_in': 'ផលិតផលក្នុង',
+        'categories.no_products': 'មិនទាន់មានផលិតផលក្នុងប្រភេទនេះ។',
+        'categories.back': 'ត្រឡប់ទៅប្រភេទ',
+        'categories.not_found': 'រកមិនឃើញប្រភេទ។',
+        // ─── stores ───
+        'stores.title': 'រកឃើញហាង',
+        'stores.subtitle': 'រកមើលអ្នកលក់ឯករាជ្យនិងផលិតផលរបស់ពួកគេទាំងអស់។',
+        'stores.search_placeholder': 'ស្វែងរកហាង...',
+        'stores.city_placeholder': 'ទីក្រុង',
+        'stores.sort_latest': 'ថ្មីបំផុត',
+        'stores.sort_followers': 'អ្នកតាមដានច្រើនបំផុត',
+        'stores.sort_name': 'ឈ្មោះ (ក → អ)',
+        'stores.all_shops': 'ហាងទាំងអស់',
+        'stores.loading': 'កំពុងផ្ទុកហាង...',
+        'stores.empty': 'មិនមានហាងត្រូវនឹងតម្រងរបស់អ្នក។',
+        'stores.loading_store': 'កំពុងផ្ទុកហាង...',
+        'stores.follow': 'តាមដាន',
+        'stores.following': 'កំពុងតាមដាន',
+        'stores.location': 'ទីតាំង',
+        'stores.get_directions': 'យកទិសដៅ',
+        'stores.products': 'ផលិតផល',
+        'stores.no_products': 'ហាងនេះមិនទាន់មានផលិតផលនៅឡើយ។',
+        // ─── compare ───
+        'compare.title': 'ប្រៀបធៀបផលិតផល',
+        'compare.subtitle': 'ការប្រៀបធៀបជាមួយផលិតផលរហូតដល់ ៤។',
+        'compare.clear_all': 'លុបទាំងអស់',
+        'compare.empty': 'មិនមានផលិតផលក្នុងបញ្ជីប្រៀបធៀបនៅឡើយ។',
+        'compare.hint': 'រកមើលផលិតផលហើយចុច "បន្ថែមដើម្បីប្រៀបធៀប" ដើម្បីបន្ថែមរហូតដល់ ៤ ធាតុ។',
+        'compare.browse_products': 'រកមើលផលិតផល',
+        'compare.col_product': 'ផលិតផល',
+        'compare.col_price': 'តម្លៃ',
+        'compare.col_brand': 'ម៉ាក',
+        'compare.col_category': 'ប្រភេទ',
+        'compare.col_condition': 'លក្ខខណ្ឌ',
+        'compare.col_location': 'ទីតាំង',
+        'compare.col_stock': 'ស្តុក',
+        'compare.view': 'មើល',
+        // ─── auth ───
+        'auth.signin_title': 'សូមស្វាគមន៍មកវិញ',
+        'auth.signin_subtitle': 'ចូលដើម្បីបន្តទិញទំនិញ',
+        'auth.session_expired': 'វគ្គរបស់អ្នកបានផុតកំណត់។ សូមចូលម្តងទៀត។',
+        'auth.email': 'អ៊ីមែល',
+        'auth.password': 'ពាក្យសម្ងាត់',
+        'auth.forgot': 'ភ្លេច?',
+        'auth.signing_in': 'កំពុងចូល...',
+        'auth.no_account': 'មិនមានគណនី?',
+        'auth.signup_title': 'បង្កើតគណនីរបស់អ្នក',
+        'auth.signup_subtitle': 'ចាប់ផ្តើមទិញនិងលក់ថ្ងៃនេះ',
+        'auth.full_name': 'ឈ្មោះពេញ',
+        'auth.phone_optional': 'លេខទូរសព្ទ (ស្រេចចិត្ត)',
+        'auth.password_hint': 'ត្រូវតែមានអក្សរនិងលេខ យ៉ាងហោចណាស់ ៨ តួ។',
+        'auth.confirm_password': 'បញ្ជាក់ពាក្យសម្ងាត់',
+        'auth.create_account': 'បង្កើតគណនី',
+        'auth.creating': 'កំពុងបង្កើត...',
+        'auth.have_account': 'មានគណនីរួចហើយ?',
+        'auth.reset_title': 'កំណត់ពាក្យសម្ងាត់របស់អ្នកឡើងវិញ',
+        'auth.reset_subtitle': 'បញ្ចូលអ៊ីមែលរបស់អ្នក យើងនឹងផ្ញើតំណកំណត់ឡើងវិញ។',
+        'auth.send_link': 'ផ្ញើតំណកំណត់ឡើងវិញ',
+        'auth.sending': 'កំពុងផ្ញើ...',
+        'auth.back_to_signin': 'ត្រឡប់ទៅការចូល',
+        // ─── common ───
+        'common.previous': 'មុន',
+        'common.next': 'បន្ទាប់',
+        'common.items': 'ធាតុ',
+        'common.loading': 'កំពុងផ្ទុក...',
+    },
+};
+
+function readLocale() {
+    try {
+        const v = localStorage.getItem('locale');
+        return v === 'km' ? 'km' : 'en';
+    } catch {
+        return 'en';
+    }
+}
+
+let currentLocale = readLocale();
+
+function applyDomTranslations() {
+    document.documentElement.lang = currentLocale;
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        if (!key) return;
+        const txt = window.t(key);
+        if (el.hasAttribute('data-i18n-placeholder')) {
+            el.setAttribute('placeholder', txt);
+            return;
+        }
+        // If the element has element children (e.g. an SVG icon + a span), translate only
+        // the inner text node so the children survive. Otherwise replace textContent.
+        const hasElementChildren = Array.from(el.childNodes).some(n => n.nodeType === Node.ELEMENT_NODE);
+        if (hasElementChildren) {
+            // Find the first text node and update it; if none, append one.
+            const textNode = Array.from(el.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.nodeValue.trim() !== '');
+            if (textNode) {
+                textNode.nodeValue = (el.dataset.i18nLeadingSpace ? ' ' : '') + txt + (el.dataset.i18nTrailingSpace ? ' ' : '');
+            } else {
+                el.appendChild(document.createTextNode(' ' + txt));
+            }
+        } else {
+            el.textContent = txt;
+        }
+    });
+}
+
+window.t = function (key, params) {
+    const dict = DICTS[currentLocale] || DICTS.en;
+    let str = dict[key] ?? DICTS.en[key] ?? key;
+    if (params && typeof params === 'object') {
+        Object.entries(params).forEach(([k, v]) => {
+            str = str.replace(new RegExp('\\{' + k + '\\}', 'g'), String(v));
+        });
+    }
+    return str;
+};
+
+window.currentLocale = () => currentLocale;
+
+window.setLocale = function (locale) {
+    if (locale !== 'en' && locale !== 'km') return;
+    if (locale === currentLocale) return;
+    currentLocale = locale;
+    try { localStorage.setItem('locale', locale); } catch {}
+    applyDomTranslations();
+    window.dispatchEvent(new CustomEvent('i18n:changed', { detail: { locale } }));
+};
+
+document.addEventListener('DOMContentLoaded', applyDomTranslations);
+// Re-run shortly after to catch any DOM injected by Alpine after initial paint.
+window.addEventListener('load', () => setTimeout(applyDomTranslations, 50));

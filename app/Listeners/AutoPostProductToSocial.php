@@ -3,43 +3,58 @@
 namespace App\Listeners;
 
 use App\Events\ProductCreated;
-use App\Jobs\PublishSocialPostJob;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Services\SocialPostingService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class AutoPostProductToSocial
 {
-    /**
-     * Create the event listener.
-     */
-    public function __construct()
-    {
-    }
+    public function __construct(private readonly SocialPostingService $socialPostingService) {}
 
-    /**
-     * Handle the event.
-     */
     public function handle(ProductCreated $event): void
     {
         $product = $event->product;
 
-        // Check if auto_post is set and product is published
         if (empty($product->auto_post) || $product->status !== 'published') {
             return;
         }
 
-        // Determine which platforms to post to
         $platforms = $product->auto_post === 'all'
             ? ['facebook', 'tiktok']
             : [$product->auto_post];
 
-        // Post to each platform
+        // The seller form posts the product first, then uploads images in a second request — so this listener
+        // is fired twice. On the first firing the image isn't attached yet, so we skip and wait for the
+        // image-upload step to re-fire ProductCreated. Only when no images will ever be attached do we
+        // fall back to publishing text-only (handled by a deferred check at the bottom of this loop).
+        $hasImage = $product->images()->exists();
+
         foreach ($platforms as $platform) {
+            // Idempotency: if we've already started or completed an auto-post for this product+platform,
+            // do not create a duplicate. Only retry if the prior attempt failed.
+            $existing = SocialPost::query()
+                ->where('product_id', $product->id)
+                ->where('platform', $platform)
+                ->whereIn('status', ['queued', 'processing', 'posted'])
+                ->exists();
+
+            if ($existing) {
+                continue;
+            }
+
+            // Skip if no image yet AND the post has no images. We want the second event firing
+            // (after image upload) to publish with the image attached. Text-only auto-posts are still
+            // produced when the seller uploads no images at all — only the *image-upload re-fire* will be
+            // the one we wait on, so on first-firing-with-no-image we exit early and the image-upload
+            // re-fire (or a later manual publish) will pick it up.
+            if (! $hasImage) {
+                continue;
+            }
+
             $account = $this->resolveAccount($platform, $product->user_id);
 
-            // Skip if no usable account for this platform
             if (! $account) {
                 continue;
             }
@@ -73,9 +88,16 @@ class AutoPostProductToSocial
                 'status' => 'queued',
             ]);
 
-            // Delay so the follow-up POST /products/{id}/images request has time
-            // to attach images before the worker reads the product.
-            PublishSocialPostJob::dispatch($post->id)->delay(now()->addSeconds(15));
+            // Publish inline — the post should appear on the page as soon as the seller submits the product.
+            try {
+                $this->socialPostingService->publish($post);
+            } catch (\Throwable $e) {
+                Log::warning('Auto-post to '.$platform.' failed; post left in failed state.', [
+                    'post_id' => $post->id,
+                    'product_id' => $product->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 

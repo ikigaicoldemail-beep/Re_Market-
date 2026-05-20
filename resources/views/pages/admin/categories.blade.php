@@ -28,32 +28,55 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Logo</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parent</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sort</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-                <template x-for="cat in categories" :key="cat.id">
-                    <tr class="hover:bg-gray-50">
+                <template x-for="cat in displayCategories" :key="cat.id">
+                    <tr class="hover:bg-gray-50" :class="cat.parent_id ? 'bg-gray-50/40' : ''">
                         <td class="px-4 py-3">
-                            <template x-if="cat.logo_url">
-                                <img :src="cat.logo_url" :alt="cat.name" class="w-10 h-10 rounded-lg object-cover bg-gray-100">
-                            </template>
-                            <template x-if="!cat.logo_url">
-                                <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">—</div>
-                            </template>
+                            <div class="flex items-center" :style="cat.parent_id ? 'padding-left: 24px' : ''">
+                                <template x-if="cat.parent_id">
+                                    <span class="text-gray-300 mr-2">↳</span>
+                                </template>
+                                <template x-if="cat.logo_url">
+                                    <img :src="cat.logo_url" :alt="cat.name"
+                                        :class="cat.parent_id ? 'w-10 h-10' : 'w-12 h-12'"
+                                        class="rounded-lg object-cover bg-gray-100 border border-gray-200">
+                                </template>
+                                <template x-if="!cat.logo_url">
+                                    <div :class="cat.parent_id ? 'w-10 h-10' : 'w-12 h-12'"
+                                         class="rounded-lg bg-gradient-to-br from-indigo-50 to-pink-50 flex items-center justify-center text-indigo-400 font-semibold border border-gray-200"
+                                         x-text="cat.name.charAt(0).toUpperCase()"></div>
+                                </template>
+                            </div>
                         </td>
                         <td class="px-4 py-3">
-                            <p class="font-medium text-gray-900" x-text="cat.name"></p>
+                            <p class="font-medium text-gray-900 flex items-center gap-2">
+                                <span x-text="cat.name"></span>
+                                <span x-show="!cat.parent_id && childCountFor(cat.id) > 0"
+                                    class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700"
+                                    x-text="childCountFor(cat.id) + ' subs'" style="display:none"></span>
+                            </p>
                             <p class="text-xs text-gray-500 line-clamp-1" x-text="cat.description || ''"></p>
                         </td>
-                        <td class="px-4 py-3 text-sm text-gray-600" x-text="cat.slug"></td>
-                        <td class="px-4 py-3 text-sm text-gray-600" x-text="parentName(cat.parent_id) || '—'"></td>
+                        <td class="px-4 py-3 text-sm text-gray-600 font-mono" x-text="cat.slug"></td>
+                        <td class="px-4 py-3 text-sm">
+                            <template x-if="!cat.parent_id">
+                                <span class="inline-block text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">Main</span>
+                            </template>
+                            <template x-if="cat.parent_id">
+                                <span class="inline-block text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                                    Sub of <span class="font-medium" x-text="parentName(cat.parent_id)"></span>
+                                </span>
+                            </template>
+                        </td>
                         <td class="px-4 py-3">
                             <select :value="cat.status" @change="updateStatus(cat, $event.target.value)"
                                 class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -89,13 +112,14 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Parent</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Parent (main category)</label>
                     <select x-model="form.parent_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                        <option value="">— Top level —</option>
-                        <template x-for="opt in categories.filter(c => c.id !== form.id)" :key="opt.id">
+                        <option value="">— Top level (main category) —</option>
+                        <template x-for="opt in categories.filter(c => !c.parent_id && c.id !== form.id)" :key="opt.id">
                             <option :value="opt.id" x-text="opt.name"></option>
                         </template>
                     </select>
+                    <p class="text-xs text-gray-500 mt-1">Leave blank to make this a main category. Otherwise this becomes a subcategory under the chosen parent.</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -117,20 +141,23 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Logo</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category image</label>
                     <div class="flex items-center gap-3">
                         <template x-if="logoPreview">
-                            <img :src="logoPreview" class="w-16 h-16 rounded-lg object-cover bg-gray-100">
+                            <img :src="logoPreview" class="w-24 h-24 rounded-xl object-cover bg-gray-100 border border-gray-200">
                         </template>
                         <template x-if="!logoPreview">
-                            <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">No logo</div>
+                            <div class="w-24 h-24 rounded-xl bg-gradient-to-br from-indigo-50 to-pink-50 flex items-center justify-center text-gray-400 text-xs border border-dashed border-gray-300">No image</div>
                         </template>
-                        <div class="flex-1 space-y-1">
-                            <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="onLogoChange($event)"
-                                class="block w-full text-sm text-gray-600">
-                            <p class="text-xs text-gray-500">PNG, JPG, WEBP or SVG · max 2 MB</p>
+                        <div class="flex-1 space-y-2">
+                            <label class="cursor-pointer inline-flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-lg text-sm font-medium">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span x-text="logoFile ? logoFile.name : (form.id && form.logo_url ? 'Replace image' : 'Choose image')"></span>
+                                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="onLogoChange($event)" class="hidden">
+                            </label>
+                            <p class="text-xs text-gray-500">PNG, JPG, WEBP or SVG · max 2 MB · shown to buyers when browsing categories</p>
                             <button type="button" x-show="form.id && (form.logo_url || logoPreview) && !logoFile" @click="removeLogo()"
-                                class="text-xs text-red-600 hover:text-red-700" style="display:none">Remove current logo</button>
+                                class="text-xs text-red-600 hover:text-red-700" style="display:none">Remove current image</button>
                         </div>
                     </div>
                 </div>
@@ -174,6 +201,27 @@
                 } finally {
                     this.loading = false;
                 }
+            },
+
+            get displayCategories() {
+                // Render parents followed by their children so the table reads as a tree.
+                const parents = this.categories.filter(c => !c.parent_id)
+                    .sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name));
+                const orphans = this.categories.filter(c => c.parent_id && !this.categories.some(p => p.id === c.parent_id));
+                const out = [];
+                for (const p of parents) {
+                    out.push(p);
+                    const kids = this.categories
+                        .filter(c => c.parent_id === p.id)
+                        .sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name));
+                    out.push(...kids);
+                }
+                out.push(...orphans);
+                return out;
+            },
+
+            childCountFor(parentId) {
+                return this.categories.filter(c => c.parent_id === parentId).length;
             },
 
             parentName(parentId) {

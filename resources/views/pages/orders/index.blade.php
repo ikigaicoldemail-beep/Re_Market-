@@ -7,13 +7,13 @@
 @include('components.toast')
 
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="ordersPage()" x-init="fetch">
-    <h1 class="text-2xl font-semibold text-gray-900 mb-6">My Orders</h1>
+    <h1 class="text-2xl font-semibold text-gray-900 mb-6" data-i18n="orders.title">My Orders</h1>
 
-    <div x-show="loading" class="text-center py-20 text-gray-500">Loading orders...</div>
+    <div x-show="loading" class="text-center py-20 text-gray-500" data-i18n="orders.loading">Loading orders...</div>
 
     <div x-show="!loading && orders.length === 0" class="text-center py-20 bg-white rounded-xl border border-gray-200" style="display:none">
-        <p class="text-gray-500 mb-4">You haven't placed any orders yet.</p>
-        <a href="/" class="inline-block bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700">Browse products</a>
+        <p class="text-gray-500 mb-4" data-i18n="orders.empty">You haven't placed any orders yet.</p>
+        <a href="/" class="inline-block bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700" data-i18n="orders.browse_products">Browse products</a>
     </div>
 
     <div x-show="!loading && orders.length > 0" class="space-y-3" style="display:none">
@@ -41,12 +41,12 @@
 
         {{-- Pagination --}}
         <div x-show="meta.last_page > 1" class="flex items-center justify-center gap-2 mt-6" style="display:none">
-            <button @click="goToPage(meta.current_page - 1)" :disabled="meta.current_page <= 1"
+            <button @click="goToPage(meta.current_page - 1)" :disabled="meta.current_page <= 1" data-i18n="common.previous"
                 class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Previous</button>
             <span class="text-sm text-gray-600 px-3">
                 Page <span x-text="meta.current_page"></span> of <span x-text="meta.last_page"></span>
             </span>
-            <button @click="goToPage(meta.current_page + 1)" :disabled="meta.current_page >= meta.last_page"
+            <button @click="goToPage(meta.current_page + 1)" :disabled="meta.current_page >= meta.last_page" data-i18n="common.next"
                 class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Next</button>
         </div>
     </div>

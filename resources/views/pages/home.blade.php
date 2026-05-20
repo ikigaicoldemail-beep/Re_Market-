@@ -6,10 +6,101 @@
 @include('components.toast')
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="productList()" x-init="init">
+    {{-- Hero slider --}}
+    <div x-show="banners.length > 0" class="mb-8 relative rounded-2xl overflow-hidden shadow" style="display:none">
+        <div class="relative aspect-[5/2] sm:aspect-[12/4] bg-gradient-to-br from-indigo-100 to-pink-100">
+            <template x-for="(banner, idx) in banners" :key="banner.id">
+                <a :href="banner.link_url || '#'"
+                    x-show="idx === bannerIndex"
+                    x-transition.opacity.duration.500ms
+                    class="absolute inset-0">
+                    <img :src="banner.image_url" :alt="banner.title || 'Promotion'"
+                        class="w-full h-full object-cover" loading="lazy">
+                    <div x-show="banner.title || banner.subtitle" class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex flex-col justify-end p-6 text-white" style="display:none">
+                        <h3 class="text-2xl sm:text-3xl font-bold" x-show="banner.title" x-text="banner.title" style="display:none"></h3>
+                        <p class="text-sm sm:text-base mt-1" x-show="banner.subtitle" x-text="banner.subtitle" style="display:none"></p>
+                    </div>
+                </a>
+            </template>
+        </div>
+        <div x-show="banners.length > 1" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5" style="display:none">
+            <template x-for="(_, idx) in banners" :key="idx">
+                <button @click.prevent="bannerIndex = idx"
+                    :class="idx === bannerIndex ? 'bg-white w-6' : 'bg-white/60 w-2'"
+                    class="h-2 rounded-full transition-all"></button>
+            </template>
+        </div>
+    </div>
+
+    {{-- Brand bar --}}
+    <div x-show="brands.length > 0" class="mb-6" style="display:none">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide" data-i18n="home.shop_by_brand">Shop by brand</h2>
+            <button x-show="filters.brand_id" @click="selectBrand('')"
+                class="text-xs text-indigo-600 hover:text-indigo-700 font-medium" data-i18n="home.all_brands" style="display:none">
+                All brands
+            </button>
+        </div>
+        <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+            <template x-for="b in brands" :key="b.id">
+                <button @click="selectBrand(b.id)"
+                    :class="filters.brand_id == b.id ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'hover:bg-gray-50'"
+                    class="shrink-0 w-24 text-center p-2 rounded-xl border border-gray-200 bg-white transition">
+                    <template x-if="b.logo_url">
+                        <img :src="b.logo_url" :alt="b.name" class="w-12 h-12 mx-auto rounded-lg object-contain bg-white">
+                    </template>
+                    <template x-if="!b.logo_url">
+                        <div class="w-12 h-12 mx-auto rounded-lg bg-gradient-to-br from-indigo-100 to-pink-100 flex items-center justify-center text-indigo-600 font-bold"
+                             x-text="b.name.charAt(0)"></div>
+                    </template>
+                    <p class="text-xs font-medium text-gray-700 mt-1 truncate" x-text="b.name"></p>
+                </button>
+            </template>
+        </div>
+    </div>
+
+    {{-- Trending carousel --}}
+    <div x-show="trending.length > 0" class="mb-8" style="display:none">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <x-heroicon-s-fire class="w-5 h-5 text-amber-500"/>
+                <span data-i18n="home.trending">Trending</span>
+            </h2>
+            <a href="?sort=featured" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium" data-i18n="home.view_all">View all</a>
+        </div>
+        <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+            <template x-for="product in trending" :key="'t-' + product.id">
+                <a :href="'/products/' + product.id"
+                    class="shrink-0 w-44 snap-start bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition group">
+                    <div class="aspect-square bg-gray-100 overflow-hidden relative">
+                        <img :src="primaryImage(product)" :alt="product.title" loading="lazy"
+                            onerror="this.src='https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image'"
+                            class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <span class="absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 inline-flex items-center gap-0.5">
+                            <x-heroicon-s-fire class="w-3 h-3"/> Trending
+                        </span>
+                        <span x-show="product.original_price_amount && product.original_price_amount > product.price_amount"
+                            class="absolute top-2 right-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700" style="display:none"
+                            x-text="'-' + Math.round((1 - product.price_amount/product.original_price_amount) * 100) + '%'"></span>
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-medium text-gray-900 text-sm line-clamp-2 mb-1.5" x-text="product.title"></h3>
+                        <div class="flex items-baseline gap-1.5">
+                            <p class="text-base font-bold text-indigo-600" x-text="formatPrice(product.price_amount, product.currency)"></p>
+                            <p x-show="product.original_price_amount && product.original_price_amount > product.price_amount"
+                                class="text-xs text-gray-400 line-through" style="display:none"
+                                x-text="formatPrice(product.original_price_amount, product.currency)"></p>
+                        </div>
+                    </div>
+                </a>
+            </template>
+        </div>
+    </div>
+
     {{-- Top-level category cards (khmer24-style) --}}
     <div class="mb-6">
         <div class="flex items-center justify-between mb-3">
-            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Categories</h2>
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide" data-i18n="home.categories">Categories</h2>
             <button x-show="filters.category_id" @click="clearCategory()"
                 class="text-xs text-indigo-600 hover:text-indigo-700 font-medium" style="display:none">
                 Show all categories
@@ -76,20 +167,20 @@
         {{-- Filters Sidebar --}}
         <aside class="lg:w-64 shrink-0">
             <div class="bg-white rounded-xl border border-gray-200 p-5 sticky top-20">
-                <h2 class="font-semibold text-gray-900 mb-4">Filters</h2>
+                <h2 class="font-semibold text-gray-900 mb-4" data-i18n="filters.title">Filters</h2>
 
                 <div class="mb-5">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="filters.search">Search</label>
                     <input type="text" x-model.debounce.400ms="filters.search" @input="resetAndFetch()"
-                        placeholder="Title, description..."
+                        placeholder="Title, description..." data-i18n="filters.search_placeholder" data-i18n-placeholder
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
 
                 <div class="mb-5">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="filters.condition">Condition</label>
                     <select x-model="filters.product_condition_id" @change="resetAndFetch()"
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">Any condition</option>
+                        <option value="" data-i18n="filters.any_condition">Any condition</option>
                         <template x-for="c in conditions" :key="c.id">
                             <option :value="c.id" x-text="c.name"></option>
                         </template>
@@ -97,28 +188,28 @@
                 </div>
 
                 <div class="mb-5">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Price range</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="filters.price_range">Price range</label>
                     <div class="flex gap-2">
-                        <input type="number" x-model.number="filters.min_price" @change="resetAndFetch()" placeholder="Min"
+                        <input type="number" x-model.number="filters.min_price" @change="resetAndFetch()" placeholder="Min" data-i18n="filters.min" data-i18n-placeholder
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <input type="number" x-model.number="filters.max_price" @change="resetAndFetch()" placeholder="Max"
+                        <input type="number" x-model.number="filters.max_price" @change="resetAndFetch()" placeholder="Max" data-i18n="filters.max" data-i18n-placeholder
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
-                    <p class="text-xs text-gray-400 mt-1">In cents (e.g. 1000 = $10)</p>
+                    <p class="text-xs text-gray-400 mt-1" data-i18n="filters.price_hint">In cents (e.g. 1000 = $10)</p>
                 </div>
 
                 <div class="mb-5">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Sort by</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="filters.sort_by">Sort by</label>
                     <select x-model="filters.sort" @change="resetAndFetch()"
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="latest">Newest first</option>
-                        <option value="oldest">Oldest first</option>
-                        <option value="price_asc">Price: low to high</option>
-                        <option value="price_desc">Price: high to low</option>
+                        <option value="latest" data-i18n="filters.sort_latest">Newest first</option>
+                        <option value="oldest" data-i18n="filters.sort_oldest">Oldest first</option>
+                        <option value="price_asc" data-i18n="filters.sort_price_asc">Price: low to high</option>
+                        <option value="price_desc" data-i18n="filters.sort_price_desc">Price: high to low</option>
                     </select>
                 </div>
 
-                <button @click="reset()" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                <button @click="reset()" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium" data-i18n="filters.clear">
                     Clear filters
                 </button>
             </div>
@@ -127,22 +218,28 @@
         {{-- Product Grid --}}
         <div class="flex-1">
             <div class="flex items-center justify-between mb-6">
-                <h1 class="text-2xl font-semibold text-gray-900">Browse</h1>
-                <span class="text-sm text-gray-500" x-text="meta.total + ' items'"></span>
+                <h1 class="text-2xl font-semibold text-gray-900" data-i18n="home.browse">Browse</h1>
+                <span class="text-sm text-gray-500" x-text="meta.total + ' ' + (window.t ? window.t('common.items') : 'items')"></span>
             </div>
 
-            <div x-show="loading && products.length === 0" class="text-center py-20 text-gray-500" style="display:none">
+            <div x-show="loading && products.length === 0" class="text-center py-20 text-gray-500" data-i18n="home.loading_products" style="display:none">
                 Loading products...
             </div>
 
             <div x-show="!loading && products.length === 0" class="text-center py-20 bg-white rounded-xl border border-gray-200" style="display:none">
-                <p class="text-gray-500">No products found. Try adjusting your filters.</p>
+                <p class="text-gray-500" data-i18n="home.no_products">No products found. Try adjusting your filters.</p>
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                 <template x-for="product in products" :key="product.id">
                     <a :href="'/products/' + product.id"
-                        class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition group flex flex-col">
+                        class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition group flex flex-col relative">
+                        <button @click.prevent.stop="$store.compare.toggle(product.id)"
+                            :title="$store.compare.has(product.id) ? 'In compare' : 'Add to compare'"
+                            :class="$store.compare.has(product.id) ? 'bg-indigo-600 text-white' : 'bg-white/90 text-gray-600 hover:text-indigo-700'"
+                            class="absolute top-2 right-2 w-7 h-7 rounded-full border border-gray-200 shadow-sm z-10 flex items-center justify-center">
+                            <x-heroicon-o-arrows-right-left class="w-3.5 h-3.5"/>
+                        </button>
                         <div class="aspect-square bg-gray-100 overflow-hidden relative">
                             <img :src="primaryImage(product)" :alt="product.title" loading="lazy"
                                 onerror="this.src='https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image'"
@@ -151,10 +248,22 @@
                                 class="absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm"
                                 :class="conditionChipClasses(product.condition?.color)"
                                 x-text="product.condition?.name" style="display:none"></span>
+                            <span x-show="product.original_price_amount && product.original_price_amount > product.price_amount"
+                                class="absolute bottom-2 right-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700" style="display:none"
+                                x-text="'-' + Math.round((1 - product.price_amount/product.original_price_amount) * 100) + '%'"></span>
+                            <span x-show="product.is_featured && !(product.original_price_amount && product.original_price_amount > product.price_amount)"
+                                class="absolute bottom-2 right-2 px-1.5 py-1 rounded-full bg-amber-100 text-amber-700" style="display:none">
+                                <x-heroicon-s-fire class="w-3 h-3"/>
+                            </span>
                         </div>
                         <div class="p-3 flex-1 flex flex-col">
                             <h3 class="font-medium text-gray-900 text-sm line-clamp-2 mb-1.5" x-text="product.title"></h3>
-                            <p class="text-lg font-bold text-indigo-600 leading-tight" x-text="formatPrice(product.price_amount, product.currency)"></p>
+                            <div class="flex items-baseline gap-1.5">
+                                <p class="text-lg font-bold text-indigo-600 leading-tight" x-text="formatPrice(product.price_amount, product.currency)"></p>
+                                <p x-show="product.original_price_amount && product.original_price_amount > product.price_amount"
+                                    class="text-xs text-gray-400 line-through" style="display:none"
+                                    x-text="formatPrice(product.original_price_amount, product.currency)"></p>
+                            </div>
                             <div x-show="product.reviews_count > 0" class="flex items-center gap-1 mt-1 text-xs" style="display:none">
                                 <span class="text-yellow-400">★</span>
                                 <span class="font-medium text-gray-700" x-text="(product.reviews_avg_rating ?? 0).toFixed(1)"></span>
@@ -171,14 +280,14 @@
 
             {{-- Pagination --}}
             <div x-show="meta.last_page > 1" class="flex items-center justify-center gap-2 mt-8" style="display:none">
-                <button @click="goToPage(meta.current_page - 1)" :disabled="meta.current_page <= 1"
+                <button @click="goToPage(meta.current_page - 1)" :disabled="meta.current_page <= 1" data-i18n="common.previous"
                     class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                     Previous
                 </button>
                 <span class="text-sm text-gray-600 px-3">
                     Page <span x-text="meta.current_page"></span> of <span x-text="meta.last_page"></span>
                 </span>
-                <button @click="goToPage(meta.current_page + 1)" :disabled="meta.current_page >= meta.last_page"
+                <button @click="goToPage(meta.current_page + 1)" :disabled="meta.current_page >= meta.last_page" data-i18n="common.next"
                     class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                     Next
                 </button>
@@ -194,11 +303,17 @@
             products: [],
             categories: [],
             conditions: [],
+            brands: [],
+            banners: [],
+            bannerIndex: 0,
+            bannerTimer: null,
+            trending: [],
             meta: { current_page: 1, last_page: 1, total: 0 },
             filters: {
                 search: '',
                 category_id: '',
                 sub_category_id: '',
+                brand_id: '',
                 product_condition_id: '',
                 location_city: '',
                 min_price: '',
@@ -216,8 +331,46 @@
                 if (params.get('search')) this.filters.search = params.get('search');
                 if (params.get('category')) this.filters.category_id = params.get('category');
                 if (params.get('sub')) this.filters.sub_category_id = params.get('sub');
+                if (params.get('brand')) this.filters.brand_id = params.get('brand');
                 if (params.get('city')) this.filters.location_city = params.get('city');
-                await Promise.all([this.fetchProducts(), this.fetchCategories(), this.fetchConditions()]);
+                if (params.get('sort')) this.filters.sort = params.get('sort');
+                await Promise.all([
+                    this.fetchProducts(),
+                    this.fetchCategories(),
+                    this.fetchConditions(),
+                    this.fetchBrands(),
+                    this.fetchBanners(),
+                    this.fetchTrending(),
+                ]);
+            },
+            selectBrand(id) {
+                this.filters.brand_id = (this.filters.brand_id == id) ? '' : id;
+                this.syncUrl();
+                this.resetAndFetch();
+            },
+            async fetchBrands() {
+                try {
+                    const { data } = await window.api.get('/brands');
+                    this.brands = data.brands || [];
+                } catch {}
+            },
+            async fetchBanners() {
+                try {
+                    const { data } = await window.api.get('/promo-banners');
+                    this.banners = data.promo_banners || [];
+                    if (this.banners.length > 1) {
+                        clearInterval(this.bannerTimer);
+                        this.bannerTimer = setInterval(() => {
+                            this.bannerIndex = (this.bannerIndex + 1) % this.banners.length;
+                        }, 5000);
+                    }
+                } catch {}
+            },
+            async fetchTrending() {
+                try {
+                    const { data } = await window.api.get('/products', { params: { featured: 1, per_page: 12, sort: 'featured' } });
+                    this.trending = data.products || [];
+                } catch {}
             },
             get parentCategories() {
                 return this.categories.filter(c => !c.parent_id);
@@ -260,6 +413,8 @@
                 else p.delete('category');
                 if (this.filters.sub_category_id) p.set('sub', this.filters.sub_category_id);
                 else p.delete('sub');
+                if (this.filters.brand_id) p.set('brand', this.filters.brand_id);
+                else p.delete('brand');
                 if (this.filters.location_city) p.set('city', this.filters.location_city);
                 else p.delete('city');
                 const qs = p.toString();
@@ -317,7 +472,7 @@
             },
             reset() {
                 this.filters = {
-                    search: '', category_id: '', sub_category_id: '', product_condition_id: '',
+                    search: '', category_id: '', sub_category_id: '', brand_id: '', product_condition_id: '',
                     location_city: '', min_price: '', max_price: '', sort: 'latest', page: 1,
                 };
                 this.syncUrl();

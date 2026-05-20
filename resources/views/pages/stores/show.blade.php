@@ -6,20 +6,33 @@
 @include('components.toast')
 
 <div x-data="storePage()" x-init="init">
-    <div x-show="loading" class="text-center py-20 text-gray-500">Loading store...</div>
+    <div x-show="loading" class="text-center py-20 text-gray-500" data-i18n="stores.loading_store">Loading store...</div>
 
     <div x-show="error" class="text-center py-20" style="display:none">
         <p class="text-red-600 mb-4" x-text="error"></p>
-        <a href="/" class="text-indigo-600 hover:text-indigo-700">Back to browse</a>
+        <a href="/" class="text-indigo-600 hover:text-indigo-700" data-i18n="product.back_to_browse">Back to browse</a>
     </div>
 
     <div x-show="store && !loading" style="display:none">
+        {{-- Banner --}}
+        <div class="relative h-40 sm:h-56 bg-gradient-to-br from-indigo-600 to-purple-600 overflow-hidden">
+            <template x-if="store?.banner_url">
+                <img :src="store.banner_url" :alt="store.name + ' banner'" class="absolute inset-0 w-full h-full object-cover">
+            </template>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+        </div>
+
         {{-- Store header --}}
         <div class="bg-gradient-to-br from-indigo-600 to-purple-600 text-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
                 <div class="flex items-start gap-4 flex-wrap">
-                    <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-3xl font-bold shrink-0">
-                        <span x-text="store?.name?.charAt(0)?.toUpperCase()"></span>
+                    <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-3xl font-bold shrink-0 overflow-hidden">
+                        <template x-if="store?.logo_url">
+                            <img :src="store.logo_url" :alt="store.name" class="w-full h-full object-cover">
+                        </template>
+                        <template x-if="!store?.logo_url">
+                            <span x-text="store?.name?.charAt(0)?.toUpperCase()"></span>
+                        </template>
                     </div>
                     <div class="flex-1 min-w-0">
                         <h1 class="text-3xl font-semibold flex items-center gap-2">
@@ -37,14 +50,25 @@
                         <button @click="toggleFollow()" :disabled="followBusy"
                             :class="store?.is_following ? 'bg-white/15 hover:bg-white/25' : 'bg-white text-indigo-700 hover:bg-indigo-50'"
                             class="text-sm font-medium px-5 py-2 rounded-lg transition disabled:opacity-50">
-                            <span x-show="!followBusy" x-text="store?.is_following ? '✓ Following' : '+ Follow'"></span>
+                            <span x-show="!followBusy" class="inline-flex items-center gap-1.5">
+                                <template x-if="store?.is_following">
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <x-heroicon-s-check class="w-4 h-4"/>Following
+                                    </span>
+                                </template>
+                                <template x-if="!store?.is_following">
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <x-heroicon-o-plus class="w-4 h-4"/>Follow
+                                    </span>
+                                </template>
+                            </span>
                             <span x-show="followBusy" style="display:none">...</span>
                         </button>
                     </div>
                 </div>
                 <p x-show="store?.description" class="mt-4 text-indigo-50 max-w-3xl" x-text="store?.description" style="display:none"></p>
 
-                <div class="flex flex-wrap gap-4 mt-6 text-sm">
+                <div class="flex flex-wrap gap-3 mt-6 text-sm">
                     <span x-show="store?.contact_email" class="flex items-center gap-2 bg-white/10 rounded-full px-3 py-1" style="display:none">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                         <a :href="'mailto:' + store?.contact_email" x-text="store?.contact_email"></a>
@@ -53,6 +77,31 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                         <span x-text="store?.contact_phone"></span>
                     </span>
+                    <a x-show="store?.telegram_url" :href="store?.telegram_url" target="_blank" rel="noopener"
+                        class="flex items-center gap-2 bg-sky-500 hover:bg-sky-600 rounded-full px-3 py-1 transition" style="display:none">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M21.426 2.574L2.13 9.97c-.948.36-.943.86-.171 1.094l4.94 1.541 11.43-7.214c.54-.328 1.034-.151.63.21l-9.258 8.36-.357 5.346c.357 0 .515-.164.715-.358l1.717-1.667 3.563 2.633c.658.363 1.13.175 1.292-.611l2.342-10.99c.243-1.122-.382-1.587-1.547-1.14z"/></svg>
+                        Telegram
+                    </a>
+                    <a x-show="store?.messenger_url" :href="store?.messenger_url" target="_blank" rel="noopener"
+                        class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 rounded-full px-3 py-1 transition" style="display:none">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.835 1.387 5.36 3.55 7.06V22l3.245-1.78c.864.24 1.78.367 2.705.367 5.523 0 10-4.145 10-9.243C22 6.145 17.523 2 12 2zm.987 12.421l-2.55-2.717-4.937 2.717 5.43-5.764 2.61 2.717 4.876-2.717-5.43 5.764z"/></svg>
+                        Messenger
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {{-- Map --}}
+        <div x-show="store?.latitude && store?.longitude" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6" style="display:none">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3" data-i18n="stores.location">Location</h2>
+            <div class="rounded-xl overflow-hidden border border-gray-200 bg-white">
+                <iframe :src="'https://www.google.com/maps?q=' + store.latitude + ',' + store.longitude + '&z=16&output=embed'"
+                    width="100%" height="320" frameborder="0" loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"></iframe>
+                <div class="px-4 py-2 text-xs text-gray-500 border-t border-gray-100 flex items-center justify-between">
+                    <span x-text="(store.address_line || '') + (store.address_line && store.city ? ' · ' : '') + (store.city || '')"></span>
+                    <a :href="'https://www.google.com/maps/dir/?api=1&destination=' + store.latitude + ',' + store.longitude" target="_blank" rel="noopener"
+                        class="text-indigo-600 hover:text-indigo-700 font-medium" data-i18n="stores.get_directions">Get directions →</a>
                 </div>
             </div>
         </div>
@@ -60,12 +109,12 @@
         {{-- Products --}}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-semibold text-gray-900">Products</h2>
-                <span class="text-sm text-gray-500" x-text="meta.total + ' items'"></span>
+                <h2 class="text-xl font-semibold text-gray-900" data-i18n="stores.products">Products</h2>
+                <span class="text-sm text-gray-500" x-text="meta.total + ' ' + (window.t ? window.t('common.items') : 'items')"></span>
             </div>
 
             <div x-show="products.length === 0" class="text-center py-20 bg-white rounded-xl border border-gray-200" style="display:none">
-                <p class="text-gray-500">This store has no products listed yet.</p>
+                <p class="text-gray-500" data-i18n="stores.no_products">This store has no products listed yet.</p>
             </div>
 
             <div x-show="products.length > 0" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" style="display:none">
@@ -92,12 +141,12 @@
             </div>
 
             <div x-show="meta.last_page > 1" class="flex items-center justify-center gap-2 mt-8" style="display:none">
-                <button @click="goToPage(meta.current_page - 1)" :disabled="meta.current_page <= 1"
+                <button @click="goToPage(meta.current_page - 1)" :disabled="meta.current_page <= 1" data-i18n="common.previous"
                     class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Previous</button>
                 <span class="text-sm text-gray-600 px-3">
                     Page <span x-text="meta.current_page"></span> of <span x-text="meta.last_page"></span>
                 </span>
-                <button @click="goToPage(meta.current_page + 1)" :disabled="meta.current_page >= meta.last_page"
+                <button @click="goToPage(meta.current_page + 1)" :disabled="meta.current_page >= meta.last_page" data-i18n="common.next"
                     class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Next</button>
             </div>
         </div>
