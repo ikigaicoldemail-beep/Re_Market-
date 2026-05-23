@@ -9,8 +9,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // FULLTEXT index for MATCH AGAINST search across title + description
-        DB::statement('ALTER TABLE products ADD FULLTEXT INDEX products_title_description_ft (title, description)');
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE products ADD FULLTEXT INDEX products_title_description_ft (title, description)');
+        }
 
         Schema::table('products', function (Blueprint $table) {
             // Default public listing: status='published' AND visibility='public' ORDER BY created_at/published_at DESC
@@ -26,7 +27,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE products DROP INDEX products_title_description_ft');
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE products DROP INDEX products_title_description_ft');
+        }
 
         Schema::table('products', function (Blueprint $table) {
             $table->dropIndex('products_status_visibility_pub_idx');

@@ -21,11 +21,11 @@ class ImageVariantService
         'large' => 1200,
     ];
 
-    private ImageManager $manager;
+    private ?ImageManager $manager = null;
 
-    public function __construct()
+    private function manager(): ImageManager
     {
-        $this->manager = new ImageManager(new GdDriver());
+        return $this->manager ??= new ImageManager(new GdDriver());
     }
 
     /**
@@ -59,7 +59,7 @@ class ImageVariantService
         $variants = [];
 
         foreach (self::VARIANTS as $name => $maxLongEdge) {
-            $image = $this->manager->read($binary);
+            $image = $this->manager()->read($binary);
             $image->scaleDown(width: $maxLongEdge, height: $maxLongEdge);
 
             $jpegPath = $baseDir.'/'.$name.'.jpg';
