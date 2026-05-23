@@ -9,8 +9,8 @@
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="myProducts()" x-init="fetch">
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-semibold text-gray-900">My Products</h1>
-            <p class="text-sm text-gray-500 mt-1">Manage everything you're selling.</p>
+            <h1 class="text-2xl font-semibold text-gray-900" data-i18n="seller.products_title">My Products</h1>
+            <p class="text-sm text-gray-500 mt-1" data-i18n="seller.products_subtitle">Manage everything you're selling.</p>
         </div>
         <a href="{{ route('me.products.create') }}"
             class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">

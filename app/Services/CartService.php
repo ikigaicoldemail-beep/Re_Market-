@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -28,7 +29,7 @@ class CartService
         return $this->refreshTotals($cart);
     }
 
-    public function addItem(User $user, Product $product, int $quantity): Cart
+    public function addItem(User $user, Product $product, int $quantity, ?int $variantId = null): Cart
     {
         if ($product->user_id === $user->id) {
             throw ValidationException::withMessages([
@@ -42,7 +43,20 @@ class CartService
             ]);
         }
 
-        if ($product->stock_quantity < $quantity) {
+        $variant = null;
+        if ($variantId) {
+            $variant = ProductVariant::where('id', $variantId)
+                ->where('product_id', $product->id)
+                ->first();
+            if (! $variant) {
+                throw ValidationException::withMessages([
+                    'variant_id' => ['The selected variant does not belong to this product.'],
+                ]);
+            }
+        }
+
+        $stockSource = $variant ?? $product;
+        if ($stockSource->stock_quantity < $quantity) {
             throw ValidationException::withMessages([
                 'quantity' => ['Requested quantity exceeds available stock.'],
             ]);
@@ -50,7 +64,7 @@ class CartService
 
         $cart = $this->getCart($user);
 
-        DB::transaction(function () use ($cart, $product, $quantity) {
+        DB::transaction(function () use ($cart, $product, $quantity, $variant) {
             $cart = Cart::query()
                 ->whereKey($cart->id)
                 ->lockForUpdate()
@@ -61,22 +75,28 @@ class CartService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $item = $cart->items()->firstOrNew([
-                'product_id' => $product->id,
-            ]);
+            $lockedVariant = $variant
+                ? ProductVariant::query()->whereKey($variant->id)->lockForUpdate()->firstOrFail()
+                : null;
+
+            $itemLookup = ['product_id' => $product->id, 'product_variant_id' => $lockedVariant?->id];
+            $item = $cart->items()->firstOrNew($itemLookup);
 
             $newQuantity = ($item->exists ? $item->quantity : 0) + $quantity;
 
-            if ($product->stock_quantity < $newQuantity) {
+            $stockSource = $lockedVariant ?? $product;
+            if ($stockSource->stock_quantity < $newQuantity) {
                 throw ValidationException::withMessages([
                     'quantity' => ['Requested quantity exceeds available stock.'],
                 ]);
             }
 
+            $price = $lockedVariant?->price_amount ?? $product->price_amount;
             $item->fill([
+                'product_variant_id' => $lockedVariant?->id,
                 'quantity' => $newQuantity,
-                'unit_price_amount' => $product->price_amount,
-                'line_total_amount' => $newQuantity * $product->price_amount,
+                'unit_price_amount' => $price,
+                'line_total_amount' => $newQuantity * $price,
             ]);
             $item->save();
         });
@@ -125,7 +145,7 @@ class CartService
 
     public function refreshTotals(Cart $cart): Cart
     {
-        $cart->loadMissing(['items.product.images', 'items.product.store', 'items.product.category', 'items.product.condition']);
+        $cart->loadMissing(['items.product.images', 'items.product.store', 'items.product.category', 'items.product.condition', 'items.variant']);
 
         $subtotal = (int) $cart->items->sum('line_total_amount');
         $cart->forceFill([
@@ -135,6 +155,6 @@ class CartService
             'total_amount' => $subtotal,
         ])->save();
 
-        return $cart->fresh(['items.product.images', 'items.product.store', 'items.product.category', 'items.product.condition']);
+        return $cart->fresh(['items.product.images', 'items.product.store', 'items.product.category', 'items.product.condition', 'items.variant']);
     }
 }

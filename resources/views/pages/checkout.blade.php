@@ -89,6 +89,7 @@
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-700 truncate pr-2">
                                 <span x-text="item.product.title"></span>
+                                <span x-show="item.variant_label" class="text-indigo-600 ml-1" x-text="'(' + item.variant_label + ')'" style="display:none"></span>
                                 <span class="text-gray-400">×<span x-text="item.quantity"></span></span>
                             </span>
                             <span class="shrink-0" x-text="formatPrice(item.line_total_amount, cart.currency)"></span>

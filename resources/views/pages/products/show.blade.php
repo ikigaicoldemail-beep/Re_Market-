@@ -525,7 +525,9 @@
                 }
                 this.addingToCart = true;
                 try {
-                    await window.api.post('/cart/items', { product_id: this.product.id, quantity: 1 });
+                    const payload = { product_id: this.product.id, quantity: 1 };
+                    if (this.selectedVariant?.id) payload.variant_id = this.selectedVariant.id;
+                    await window.api.post('/cart/items', payload);
                     await Alpine.store('cart').refresh();
                     window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Added to cart!' } }));
                 } catch (e) {

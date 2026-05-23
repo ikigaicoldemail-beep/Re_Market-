@@ -104,18 +104,24 @@
             </div>
             <div class="space-y-2">
                 <template x-for="(v, idx) in variants" :key="idx">
-                    <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    <div class="border border-gray-200 rounded-lg p-3 bg-gray-50"
+                        :class="v.is_default ? 'ring-2 ring-indigo-400' : ''">
                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
                             <input type="text" x-model="v.label" placeholder="Label (e.g. 128GB Pink)"
                                 class="sm:col-span-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <input type="text" x-model="v.sku" placeholder="SKU (optional)"
-                                class="sm:col-span-3 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                class="sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <input type="number" min="0" x-model.number="v.price_amount" placeholder="Price (cents)"
                                 class="sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <input type="number" min="0" x-model.number="v.stock_quantity" placeholder="Stock"
                                 class="sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button type="button"
+                                @click="variants.forEach((u,i) => u.is_default = (i === idx)); "
+                                :class="v.is_default ? 'text-indigo-600 font-bold' : 'text-gray-400 hover:text-indigo-500'"
+                                class="sm:col-span-1 px-2 text-sm" title="Set as default">★</button>
                             <button type="button" @click="removeVariant(idx)" class="text-red-500 hover:text-red-700 px-2 sm:col-span-1">✕</button>
                         </div>
+                        <p x-show="v.is_default" class="text-[10px] text-indigo-600 mt-1 font-medium" style="display:none">Default variant</p>
                     </div>
                 </template>
                 <p x-show="variants.length === 0" class="text-xs text-gray-500" style="display:none">No variants. Buyers will see the base product price + stock.</p>

@@ -11,6 +11,8 @@ class CartItemResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'product_variant_id' => $this->product_variant_id,
+            'variant_label' => $this->variant?->label,
             'quantity' => $this->quantity,
             'unit_price_amount' => $this->unit_price_amount,
             'line_total_amount' => $this->line_total_amount,

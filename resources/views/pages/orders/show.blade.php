@@ -53,6 +53,7 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="font-medium text-gray-900 line-clamp-2" x-text="item.product_title"></p>
+                            <p x-show="item.variant_label" class="text-xs text-indigo-600 font-medium mt-0.5 bg-indigo-50 px-2 py-0.5 rounded inline-block" x-text="item.variant_label" style="display:none"></p>
                             <p class="text-xs text-gray-500 mt-1" x-text="item.product_condition_label || ''"></p>
                             <div class="flex items-center justify-between mt-2 text-sm">
                                 <span class="text-gray-600">Qty: <span x-text="item.quantity"></span></span>
