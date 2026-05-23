@@ -2,11 +2,15 @@
 
 namespace App\Services;
 
+use App\Events\ChatMessageSent;
 use App\Models\ChatMessage;
 use App\Models\Conversation;
 use App\Models\Product;
 use App\Models\User;
+use App\Notifications\NewChatMessage;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -83,13 +87,29 @@ class ChatService
             ->paginate(30);
     }
 
-    public function sendMessage(User $user, Conversation $conversation, array $data): ChatMessage
+    public function sendMessage(User $user, Conversation $conversation, array $data, ?UploadedFile $attachment = null): ChatMessage
     {
-        return DB::transaction(function () use ($user, $conversation, $data) {
+        $attachmentPath = null;
+        if ($attachment) {
+            $attachmentPath = $attachment->store('chat-attachments/'.$conversation->id, 'public');
+        }
+
+        $type = $data['type'] ?? null;
+        if (! $type) {
+            $type = $attachmentPath ? 'image' : 'text';
+        }
+
+        $body = $data['body'] ?? null;
+        if (! $body) {
+            $body = $attachmentPath ? '[image]' : '';
+        }
+
+        $message = DB::transaction(function () use ($user, $conversation, $type, $body, $attachmentPath) {
             $message = $conversation->messages()->create([
                 'sender_id' => $user->id,
-                'type' => $data['type'] ?? 'text',
-                'body' => $data['body'],
+                'type' => $type,
+                'body' => $body,
+                'attachment_path' => $attachmentPath,
                 'sent_at' => now(),
             ]);
 
@@ -107,6 +127,32 @@ class ChatService
 
             return $message->load('sender.profile');
         });
+
+        // Broadcast to other participants. ShouldBroadcastNow keeps it sync
+        // so no queue worker is required for chat. If Reverb is not running,
+        // the broadcast quietly logs and clients keep polling as before.
+        try {
+            ChatMessageSent::dispatch($message);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        // Notify the other participant(s).
+        try {
+            $recipients = $conversation->participants()
+                ->where('user_id', '!=', $user->id)
+                ->with('user')
+                ->get()
+                ->pluck('user')
+                ->filter();
+            if ($recipients->isNotEmpty()) {
+                Notification::send($recipients, new NewChatMessage($message));
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $message;
     }
 
     public function markAsSeen(User $user, Conversation $conversation): Conversation

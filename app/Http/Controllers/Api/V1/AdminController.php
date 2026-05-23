@@ -3,20 +3,68 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BrandResource;
+use App\Http\Resources\CategoryResource;
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\ProductReportResource;
 use App\Http\Resources\ProductResource;
+use App\Http\Resources\PromoBannerResource;
 use App\Http\Resources\StoreResource;
 use App\Http\Resources\UserResource;
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductReport;
+use App\Models\PromoBanner;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
+    public function stats(): JsonResponse
+    {
+        $stats = Cache::remember('admin:stats:v1', 60, function () {
+            return [
+                'users' => [
+                    'total' => User::count(),
+                    'active' => User::where('status', 'active')->count(),
+                    'sellers' => User::where('role', 'seller')->count(),
+                ],
+                'stores' => [
+                    'total' => Store::count(),
+                    'active' => Store::where('status', 'active')->count(),
+                    'pending_verification' => Store::where('is_verified', false)->where('status', 'active')->count(),
+                ],
+                'products' => [
+                    'total' => Product::count(),
+                    'published' => Product::where('status', 'published')->count(),
+                    'pending_moderation' => Product::where('moderation_status', 'pending')->count(),
+                ],
+                'orders' => [
+                    'total' => Order::count(),
+                    'paid' => Order::where('payment_status', 'paid')->count(),
+                    'pending' => Order::where('status', 'pending')->count(),
+                ],
+                'revenue' => [
+                    'paid_total_minor' => (int) Order::where('payment_status', 'paid')->sum('total_amount'),
+                    'currency' => Order::where('payment_status', 'paid')->value('currency') ?? 'USD',
+                ],
+                'reports' => [
+                    'open' => ProductReport::where('status', 'open')->count(),
+                ],
+            ];
+        });
+
+        return response()->json(['stats' => $stats]);
+    }
+
     public function users(Request $request): JsonResponse
     {
         $filters = $request->validate([
@@ -272,6 +320,400 @@ class AdminController extends Controller
             'message' => 'Order updated successfully.',
             'order' => new OrderResource($order->fresh(['buyer.profile', 'address', 'store', 'items', 'payments'])),
         ]);
+    }
+
+    public function categories(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+        ]);
+
+        $categories = Category::query()
+            ->when($filters['search'] ?? null, function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query
+                        ->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('slug', 'like', '%'.$search.'%');
+                });
+            })
+            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'categories' => CategoryResource::collection($categories),
+        ]);
+    }
+
+    public function storeCategory(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'description' => ['nullable', 'string'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'sort_order' => ['nullable', 'integer'],
+            'logo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+        ]);
+
+        $payload = [
+            'name' => $data['name'],
+            'parent_id' => $data['parent_id'] ?? null,
+            'description' => $data['description'] ?? null,
+            'status' => $data['status'] ?? 'active',
+            'sort_order' => $data['sort_order'] ?? 0,
+            'slug' => $this->uniqueCategorySlug($data['name']),
+        ];
+
+        if ($request->hasFile('logo')) {
+            $payload['logo_path'] = $request->file('logo')->store('', 'category-logos');
+            $payload['logo_disk'] = 'category-logos';
+        }
+
+        $category = Category::create($payload);
+
+        return response()->json([
+            'message' => 'Category created successfully.',
+            'category' => new CategoryResource($category),
+        ], 201);
+    }
+
+    public function updateCategory(Request $request, Category $category): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'parent_id' => ['nullable', 'integer', 'exists:categories,id', Rule::notIn([$category->id])],
+            'description' => ['nullable', 'string'],
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
+            'sort_order' => ['sometimes', 'integer'],
+            'logo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+            'remove_logo' => ['sometimes', 'boolean'],
+        ]);
+
+        $category->fill(collect($data)->except(['logo', 'remove_logo'])->all());
+
+        if ($request->hasFile('logo')) {
+            if ($category->logo_path && $category->logo_disk) {
+                Storage::disk($category->logo_disk)->delete($category->logo_path);
+            }
+            $category->logo_path = $request->file('logo')->store('', 'category-logos');
+            $category->logo_disk = 'category-logos';
+        } elseif ($request->boolean('remove_logo') && $category->logo_path && $category->logo_disk) {
+            Storage::disk($category->logo_disk)->delete($category->logo_path);
+            $category->logo_path = null;
+            $category->logo_disk = null;
+        }
+
+        $category->save();
+
+        return response()->json([
+            'message' => 'Category updated successfully.',
+            'category' => new CategoryResource($category->fresh()),
+        ]);
+    }
+
+    public function destroyCategory(Category $category): JsonResponse
+    {
+        if ($category->slug === 'other') {
+            abort(422, 'The "Other" category cannot be deleted — it is used as the fallback for products without a category.');
+        }
+
+        $other = Category::firstOrCreate(
+            ['slug' => 'other'],
+            ['name' => 'Other', 'description' => 'Items that don\'t fit any other category.', 'status' => 'active', 'sort_order' => 99]
+        );
+
+        Product::where('category_id', $category->id)->update(['category_id' => $other->id]);
+        Category::where('parent_id', $category->id)->update(['parent_id' => null]);
+
+        if ($category->logo_path && $category->logo_disk) {
+            Storage::disk($category->logo_disk)->delete($category->logo_path);
+        }
+
+        $category->delete();
+
+        return response()->json([
+            'message' => 'Category deleted. Affected products were moved to "Other".',
+        ]);
+    }
+
+    public function brands(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+        ]);
+
+        $brands = Brand::query()
+            ->withCount('products')
+            ->when($filters['search'] ?? null, function ($q, $s) {
+                $q->where(function ($qq) use ($s) {
+                    $qq->where('name', 'like', '%'.$s.'%')->orWhere('slug', 'like', '%'.$s.'%');
+                });
+            })
+            ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'brands' => BrandResource::collection($brands),
+        ]);
+    }
+
+    public function storeBrand(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'sort_order' => ['nullable', 'integer'],
+            'logo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+        ]);
+
+        $payload = [
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+            'status' => $data['status'] ?? 'active',
+            'sort_order' => $data['sort_order'] ?? 0,
+            'slug' => $this->uniqueBrandSlug($data['name']),
+        ];
+
+        if ($request->hasFile('logo')) {
+            $payload['logo_path'] = $request->file('logo')->store('', 'brand-logos');
+            $payload['logo_disk'] = 'brand-logos';
+        }
+
+        $brand = Brand::create($payload);
+
+        return response()->json([
+            'message' => 'Brand created successfully.',
+            'brand' => new BrandResource($brand),
+        ], 201);
+    }
+
+    public function updateBrand(Request $request, Brand $brand): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
+            'sort_order' => ['sometimes', 'integer'],
+            'logo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+            'remove_logo' => ['sometimes', 'boolean'],
+        ]);
+
+        $brand->fill(collect($data)->except(['logo', 'remove_logo'])->all());
+
+        if ($request->hasFile('logo')) {
+            if ($brand->logo_path && $brand->logo_disk) {
+                Storage::disk($brand->logo_disk)->delete($brand->logo_path);
+            }
+            $brand->logo_path = $request->file('logo')->store('', 'brand-logos');
+            $brand->logo_disk = 'brand-logos';
+        } elseif ($request->boolean('remove_logo') && $brand->logo_path && $brand->logo_disk) {
+            Storage::disk($brand->logo_disk)->delete($brand->logo_path);
+            $brand->logo_path = null;
+            $brand->logo_disk = null;
+        }
+
+        $brand->save();
+
+        return response()->json([
+            'message' => 'Brand updated successfully.',
+            'brand' => new BrandResource($brand->fresh()),
+        ]);
+    }
+
+    public function destroyBrand(Brand $brand): JsonResponse
+    {
+        Product::where('brand_id', $brand->id)->update(['brand_id' => null]);
+
+        if ($brand->logo_path && $brand->logo_disk) {
+            Storage::disk($brand->logo_disk)->delete($brand->logo_path);
+        }
+
+        $brand->delete();
+
+        return response()->json([
+            'message' => 'Brand deleted. Products in this brand were unlinked.',
+        ]);
+    }
+
+    public function promoBanners(Request $request): JsonResponse
+    {
+        $banners = PromoBanner::query()
+            ->orderBy('sort_order')
+            ->latest('id')
+            ->get();
+
+        return response()->json([
+            'promo_banners' => PromoBannerResource::collection($banners),
+        ]);
+    }
+
+    public function storePromoBanner(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'subtitle' => ['nullable', 'string', 'max:255'],
+            'link_url' => ['nullable', 'string', 'max:1024'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'sort_order' => ['nullable', 'integer'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date'],
+            'image' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+        ]);
+
+        $imagePath = $request->file('image')->store('', 'promo-banners');
+
+        $banner = PromoBanner::create([
+            'title' => $data['title'] ?? null,
+            'subtitle' => $data['subtitle'] ?? null,
+            'link_url' => $data['link_url'] ?? null,
+            'status' => $data['status'] ?? 'active',
+            'sort_order' => $data['sort_order'] ?? 0,
+            'starts_at' => $data['starts_at'] ?? null,
+            'ends_at' => $data['ends_at'] ?? null,
+            'image_path' => $imagePath,
+            'image_disk' => 'promo-banners',
+        ]);
+
+        return response()->json([
+            'message' => 'Promo banner created.',
+            'promo_banner' => new PromoBannerResource($banner),
+        ], 201);
+    }
+
+    public function updatePromoBanner(Request $request, PromoBanner $promoBanner): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'subtitle' => ['nullable', 'string', 'max:255'],
+            'link_url' => ['nullable', 'string', 'max:1024'],
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
+            'sort_order' => ['sometimes', 'integer'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date'],
+            'image' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+        ]);
+
+        $promoBanner->fill(collect($data)->except(['image'])->all());
+
+        if ($request->hasFile('image')) {
+            if ($promoBanner->image_path && $promoBanner->image_disk) {
+                Storage::disk($promoBanner->image_disk)->delete($promoBanner->image_path);
+            }
+            $promoBanner->image_path = $request->file('image')->store('', 'promo-banners');
+            $promoBanner->image_disk = 'promo-banners';
+        }
+
+        $promoBanner->save();
+
+        return response()->json([
+            'message' => 'Promo banner updated.',
+            'promo_banner' => new PromoBannerResource($promoBanner->fresh()),
+        ]);
+    }
+
+    public function destroyPromoBanner(PromoBanner $promoBanner): JsonResponse
+    {
+        if ($promoBanner->image_path && $promoBanner->image_disk) {
+            Storage::disk($promoBanner->image_disk)->delete($promoBanner->image_path);
+        }
+
+        $promoBanner->delete();
+
+        return response()->json([
+            'message' => 'Promo banner deleted.',
+        ]);
+    }
+
+    public function toggleProductFeatured(Request $request, Product $product): JsonResponse
+    {
+        $data = $request->validate([
+            'is_featured' => ['required', 'boolean'],
+        ]);
+
+        $product->is_featured = $data['is_featured'];
+        $product->featured_at = $data['is_featured'] ? ($product->featured_at ?? now()) : null;
+        $product->save();
+
+        return response()->json([
+            'message' => $data['is_featured'] ? 'Product marked as featured.' : 'Product removed from featured.',
+            'product' => new ProductResource($product->fresh(['images', 'store', 'category', 'brand', 'condition', 'user.profile'])),
+        ]);
+    }
+
+    public function reports(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'status' => ['nullable', Rule::in(ProductReport::STATUSES)],
+            'reason' => ['nullable', 'string', 'max:64'],
+            'product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $reports = ProductReport::query()
+            ->with(['product.images', 'product.store', 'reporter.profile', 'resolver.profile'])
+            ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
+            ->when($filters['reason'] ?? null, fn ($q, $v) => $q->where('reason', $v))
+            ->when($filters['product_id'] ?? null, fn ($q, $v) => $q->where('product_id', $v))
+            ->orderByRaw("FIELD(status, 'open') DESC")
+            ->latest()
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
+
+        return response()->json([
+            'reports' => ProductReportResource::collection($reports),
+            'meta' => $this->paginationMeta($reports),
+        ]);
+    }
+
+    public function updateReport(Request $request, ProductReport $report): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['resolved', 'dismissed'])],
+            'resolution_note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $report->fill([
+            'status' => $data['status'],
+            'resolution_note' => $data['resolution_note'] ?? $report->resolution_note,
+            'resolved_by' => $request->user()->id,
+            'resolved_at' => now(),
+        ])->save();
+
+        Cache::forget('admin:stats:v1');
+
+        return response()->json([
+            'message' => 'Report '.$data['status'].'.',
+            'report' => new ProductReportResource($report->fresh(['product.images', 'product.store', 'reporter.profile', 'resolver.profile'])),
+        ]);
+    }
+
+    private function uniqueCategorySlug(string $name): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+        $i = 2;
+        while (Category::where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$i++;
+        }
+        return $slug;
+    }
+
+    private function uniqueBrandSlug(string $name): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+        $i = 2;
+        while (Brand::where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$i++;
+        }
+        return $slug;
     }
 
     private function paginationMeta($paginator): array

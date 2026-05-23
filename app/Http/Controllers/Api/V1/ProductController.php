@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\ListProductsRequest;
 use App\Http\Requests\Product\StoreProductRequest;
+use App\Events\ProductCreated;
 use App\Http\Requests\Product\UpdateProductRequest;
 use App\Http\Requests\Product\UploadProductImagesRequest;
 use App\Http\Requests\Social\ScheduleProductPostRequest;
@@ -44,6 +45,15 @@ class ProductController extends Controller
     {
         $product = $this->productService->create($request->user(), $request->validated());
 
+        if ($request->hasFile('images')) {
+            $product = $this->productService->uploadImages($product, $request->file('images'));
+        }
+
+        // Fire after images are attached so the auto-post listener publishes with the primary image.
+        if ($product->status === 'published') {
+            event(new ProductCreated($product));
+        }
+
         return response()->json([
             'message' => 'Product created successfully.',
             'product' => new ProductResource($product),
@@ -59,7 +69,9 @@ class ProductController extends Controller
             abort(404);
         }
 
-        $product->load(['images', 'store', 'category', 'condition', 'user.profile']);
+        $product->load(['images', 'variants', 'store', 'category', 'brand', 'condition', 'user.profile']);
+        $product->loadCount(['reviews' => fn ($q) => $q->where('status', 'published')]);
+        $product->loadAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'published')], 'rating');
 
         return response()->json([
             'product' => new ProductResource($product),
@@ -94,6 +106,13 @@ class ProductController extends Controller
         $this->authorize('update', $product);
 
         $product = $this->productService->uploadImages($product, $request->file('images'));
+
+        // The seller form creates the product first, then POSTs images here. Re-fire ProductCreated so
+        // the auto-post listener can publish with the image attached. The listener itself is idempotent —
+        // it skips when a non-failed social post for this product+platform already exists.
+        if ($product->status === 'published') {
+            event(new ProductCreated($product));
+        }
 
         return response()->json([
             'message' => 'Product images uploaded successfully.',

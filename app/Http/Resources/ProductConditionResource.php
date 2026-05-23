@@ -13,7 +13,10 @@ class ProductConditionResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
+            'description' => $this->description,
             'rank' => $this->rank,
+            'quality_score' => $this->quality_score,
+            'color' => $this->color,
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class ChatMessageResource extends JsonResource
 {
@@ -16,6 +17,9 @@ class ChatMessageResource extends JsonResource
             'type' => $this->type,
             'body' => $this->body,
             'attachment_path' => $this->attachment_path,
+            'attachment_url' => $this->attachment_path
+                ? Storage::disk('public')->url($this->attachment_path)
+                : null,
             'sent_at' => $this->sent_at,
             'edited_at' => $this->edited_at,
             'sender' => new UserResource($this->whenLoaded('sender')),

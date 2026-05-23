@@ -2,13 +2,14 @@
 
 namespace App\Services;
 
-use App\Jobs\PublishSocialPostJob;
 use App\Models\Product;
 use App\Models\SharedProduct;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class SocialPostingService
@@ -17,8 +18,13 @@ class SocialPostingService
 
     public function createPost(User $user, Product $product, SocialAccount $account, array $data): SocialPost
     {
-        $this->assertAccountOwnership($user, $account);
         $this->assertProductOwnership($user, $product);
+
+        if ($account->platform === 'facebook') {
+            $account = $this->resolveMarketplaceFacebookAccount();
+        } else {
+            $this->assertAccountOwnership($user, $account);
+        }
 
         $post = SocialPost::create([
             'user_id' => $user->id,
@@ -26,17 +32,26 @@ class SocialPostingService
             'social_account_id' => $account->id,
             'platform' => $account->platform,
             'caption' => $data['caption'] ?? $this->defaultCaption($product),
-            'media_payload' => [
-                'image' => $product->image,
-                'title' => $product->title,
-                'price_amount' => $product->price_amount,
-                'currency' => $product->currency,
-            ],
+            'media_payload' => array_merge(
+                $this->resolveImagePayload($product),
+                [
+                    'title' => $product->title,
+                    'price_amount' => $product->price_amount,
+                    'currency' => $product->currency,
+                ]
+            ),
             'status' => ($data['publish_now'] ?? false) ? 'queued' : 'draft',
         ]);
 
         if (($data['publish_now'] ?? false) === true) {
-            PublishSocialPostJob::dispatch($post->id);
+            try {
+                $this->publish($post);
+            } catch (\Throwable $e) {
+                Log::warning('Synchronous social publish failed; post left in failed state.', [
+                    'post_id' => $post->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $post->fresh(['product.images', 'socialAccount']);
@@ -44,12 +59,30 @@ class SocialPostingService
 
     public function publish(SocialPost $post): SocialPost
     {
-        $post->loadMissing(['socialAccount', 'product']);
+        $post->loadMissing(['socialAccount', 'product.images']);
+
+        if ($post->status === 'posted' && $post->provider_post_id) {
+            return $post;
+        }
 
         if (! $post->socialAccount || $post->socialAccount->status !== 'active') {
             throw ValidationException::withMessages([
                 'social_account_id' => ['The social account is not active.'],
             ]);
+        }
+
+        // Auto-posts can be queued before the separate image-upload request
+        // finishes. Re-resolve the primary image now if the payload is missing it.
+        if ($post->product) {
+            $payload = $post->media_payload ?? [];
+            $hasImage = ! empty($payload['image_path']) && ! empty($payload['image_disk']);
+            if (! $hasImage) {
+                $refreshed = $this->resolveImagePayload($post->product);
+                if (! empty($refreshed['image_path'])) {
+                    $post->media_payload = array_merge($payload, $refreshed);
+                    $post->save();
+                }
+            }
         }
 
         $post->update(['status' => 'processing', 'error_message' => null]);
@@ -121,12 +154,14 @@ class SocialPostingService
             'social_account_id' => $account->id,
             'platform' => $account->platform,
             'caption' => $data['caption'] ?? $this->defaultCaption($product),
-            'media_payload' => [
-                'image' => $product->image,
-                'title' => $product->title,
-                'price_amount' => $product->price_amount,
-                'currency' => $product->currency,
-            ],
+            'media_payload' => array_merge(
+                $this->resolveImagePayload($product),
+                [
+                    'title' => $product->title,
+                    'price_amount' => $product->price_amount,
+                    'currency' => $product->currency,
+                ]
+            ),
             'status' => 'queued',
         ]);
 
@@ -149,11 +184,16 @@ class SocialPostingService
             return $account;
         }
 
+        return $this->resolveMarketplaceFacebookAccount();
+    }
+
+    private function resolveMarketplaceFacebookAccount(): SocialAccount
+    {
         $accountId = config('services.facebook.marketplace_social_account_id');
 
         if (! $accountId) {
             throw ValidationException::withMessages([
-                'post_to' => ['Marketplace Facebook account is not configured.'],
+                'social_account_id' => ['Marketplace Facebook account is not configured.'],
             ]);
         }
 
@@ -163,21 +203,81 @@ class SocialPostingService
                 ->firstOrFail();
         } catch (ModelNotFoundException) {
             throw ValidationException::withMessages([
-                'post_to' => ['Configured marketplace Facebook account was not found.'],
+                'social_account_id' => ['Configured marketplace Facebook account was not found.'],
             ]);
         }
 
         if ($account->status !== 'active') {
             throw ValidationException::withMessages([
-                'post_to' => ['Marketplace account is not connected or active.'],
+                'social_account_id' => ['Marketplace account is not connected or active.'],
             ]);
         }
 
         return $account;
     }
 
-    private function defaultCaption(Product $product): string
+    public static function defaultCaption(Product $product): string
     {
-        return "{$product->title} - {$product->currency} {$product->price_amount}";
+        $lines = [$product->title];
+
+        if (! empty($product->description)) {
+            $lines[] = '';
+            $lines[] = $product->description;
+        }
+
+        $lines[] = '';
+        $lines[] = 'Price: '.$product->currency.' '.number_format((float) $product->price_amount, 2);
+
+        $condition = $product->condition?->name;
+        if ($condition) {
+            $lines[] = 'Condition: '.$condition;
+        }
+
+        $location = collect([$product->location_city, $product->location_state, $product->location_country_code])
+            ->filter()
+            ->implode(', ');
+        if ($location !== '') {
+            $lines[] = 'Location: '.$location;
+        }
+
+        if ($product->allow_offers) {
+            $lines[] = 'Open to offers';
+        }
+
+        $base = rtrim(config('app.frontend_url', config('app.url')), '/');
+        if ($base !== '') {
+            $lines[] = 'View: '.$base.'/products/'.$product->id;
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function resolveImagePayload(Product $product): array
+    {
+        $primary = $product->images()
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->first();
+
+        $path = $primary?->path ?? $product->image;
+        $disk = $primary?->disk ?? ($path ? 'product-images' : null);
+
+        if (! $path || ! $disk) {
+            return [
+                'image' => null,
+                'image_url' => null,
+                'image_path' => null,
+                'image_disk' => null,
+            ];
+        }
+
+        $url = Storage::disk($disk)->url($path);
+
+        return [
+            'image' => $url,
+            'image_url' => $url,
+            'image_path' => $path,
+            'image_disk' => $disk,
+        ];
     }
 }

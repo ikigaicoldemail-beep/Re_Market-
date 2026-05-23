@@ -69,7 +69,12 @@ class ConversationController extends Controller
     {
         $this->authorize('sendMessage', $conversation);
 
-        $message = $this->chatService->sendMessage($request->user(), $conversation, $request->validated());
+        $message = $this->chatService->sendMessage(
+            $request->user(),
+            $conversation,
+            $request->validated(),
+            $request->file('attachment'),
+        );
 
         return response()->json([
             'message' => 'Message sent successfully.',

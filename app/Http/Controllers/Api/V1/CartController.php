@@ -31,7 +31,8 @@ class CartController extends Controller
         $cart = $this->cartService->addItem(
             $request->user(),
             $product,
-            $request->validated('quantity')
+            $request->validated('quantity'),
+            $request->validated('variant_id')
         );
 
         return response()->json([

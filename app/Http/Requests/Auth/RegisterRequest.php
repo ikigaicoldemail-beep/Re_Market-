@@ -21,7 +21,18 @@ class RegisterRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:30', 'unique:users,phone'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'role' => ['nullable', 'string', 'in:user,admin'],
+            'admin_key' => [
+                'required_if:role,admin',
+                function ($attribute, $value, $fail) {
+                    if ($this->input('role') !== 'admin') {
+                        return;
+                    }
+                    $expected = config('auth.admin_registration_key');
+                    if (! $expected || $value !== $expected) {
+                        $fail('The admin key is incorrect.');
+                    }
+                },
+            ],
         ];
     }
-    
 }

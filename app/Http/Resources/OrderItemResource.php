@@ -12,10 +12,15 @@ class OrderItemResource extends JsonResource
         return [
             'id' => $this->id,
             'product_id' => $this->product_id,
+            'product_variant_id' => $this->product_variant_id,
+            'variant_label' => $this->variant_label,
             'seller_id' => $this->seller_id,
             'product_title' => $this->product_title,
             'product_slug' => $this->product_slug,
             'product_image_path' => $this->product_image_path,
+            'product_image_url' => $this->product_image_path
+                ? $request->getSchemeAndHttpHost().'/storage/products/'.ltrim((string) $this->product_image_path, '/')
+                : null,
             'product_condition_label' => $this->product_condition_label,
             'quantity' => $this->quantity,
             'unit_price_amount' => $this->unit_price_amount,
