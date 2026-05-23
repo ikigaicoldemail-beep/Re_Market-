@@ -9,7 +9,7 @@
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="scheduledListings()" x-init="fetch">
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-semibold text-gray-900">Scheduled Listings</h1>
+            <h1 class="text-2xl font-semibold text-gray-900" data-i18n="seller.scheduled_title">Scheduled Listings</h1>
             <p class="text-sm text-gray-500 mt-1">
                 Products queued to become visible on the website at a future time.
                 For Facebook post scheduling instead, see

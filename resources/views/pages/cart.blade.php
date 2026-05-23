@@ -30,6 +30,7 @@
                     <div class="flex-1 min-w-0">
                         <a :href="'/products/' + item.product.id" class="font-medium text-gray-900 hover:text-indigo-600 line-clamp-2"
                             x-text="item.product.title"></a>
+                        <p x-show="item.variant_label" class="text-xs text-indigo-600 font-medium mt-0.5 bg-indigo-50 px-2 py-0.5 rounded inline-block" x-text="item.variant_label" style="display:none"></p>
                         <p class="text-sm text-gray-500 mt-1" x-text="formatPrice(item.unit_price_amount, cart.currency)"></p>
 
                         <div class="flex items-center justify-between mt-3">

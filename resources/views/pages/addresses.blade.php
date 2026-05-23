@@ -8,8 +8,8 @@
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="addressesPage()" x-init="fetch">
     <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900">My Addresses</h1>
-        <button @click="showForm = true; resetForm()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">
+        <h1 class="text-2xl font-semibold text-gray-900" data-i18n="addr.title">My Addresses</h1>
+        <button @click="showForm = true; resetForm()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700" data-i18n="addr.add">
             + Add Address
         </button>
     </div>

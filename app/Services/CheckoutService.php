@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -16,7 +17,7 @@ class CheckoutService
 {
     public function checkout(User $user, Address $address, array $data): Order
     {
-        $cart = $user->cart()->with(['items.product.condition', 'items.product.store', 'items.product.images'])->first();
+        $cart = $user->cart()->with(['items.product.condition', 'items.product.store', 'items.product.images', 'items.variant'])->first();
 
         if (! $cart || $cart->items->isEmpty()) {
             throw ValidationException::withMessages([
@@ -33,7 +34,7 @@ class CheckoutService
         return DB::transaction(function () use ($user, $address, $cart, $data) {
             $items = CartItem::query()
                 ->where('cart_id', $cart->id)
-                ->with(['product.condition', 'product.store', 'product.images'])
+                ->with(['product.condition', 'product.store', 'product.images', 'variant'])
                 ->lockForUpdate()
                 ->get();
 
@@ -64,19 +65,26 @@ class CheckoutService
                     ]);
                 }
 
-                if ((int) $item->unit_price_amount !== (int) $product->price_amount) {
+                $variant = $item->product_variant_id
+                    ? ProductVariant::query()->whereKey($item->product_variant_id)->lockForUpdate()->first()
+                    : null;
+
+                $expectedPrice = $variant?->price_amount ?? $product->price_amount;
+                if ((int) $item->unit_price_amount !== (int) $expectedPrice) {
                     throw ValidationException::withMessages([
                         'cart' => ["Product {$product->title} price has changed. Please refresh your cart before checkout."],
                     ]);
                 }
 
-                if ($product->stock_quantity < $item->quantity) {
+                $stockSource = $variant ?? $product;
+                if ($stockSource->stock_quantity < $item->quantity) {
                     throw ValidationException::withMessages([
                         'cart' => ["Product {$product->title} does not have enough stock."],
                     ]);
                 }
 
                 $item->setRelation('product', $product);
+                $item->setRelation('variant', $variant);
             }
 
             $storeIds = $items->pluck('product.store_id')->filter()->unique()->values();
@@ -103,9 +111,12 @@ class CheckoutService
 
             foreach ($items as $item) {
                 $product = $item->product;
+                $variant = $item->variant;
 
                 $order->items()->create([
                     'product_id' => $product->id,
+                    'product_variant_id' => $variant?->id,
+                    'variant_label' => $variant?->label,
                     'seller_id' => $product->user_id,
                     'product_title' => $product->title,
                     'product_slug' => $product->slug,
@@ -116,6 +127,11 @@ class CheckoutService
                     'line_total_amount' => $item->line_total_amount,
                     'fulfillment_status' => 'pending',
                 ]);
+
+                if ($variant) {
+                    $variant->stock_quantity -= $item->quantity;
+                    $variant->save();
+                }
 
                 $product->stock_quantity -= $item->quantity;
 

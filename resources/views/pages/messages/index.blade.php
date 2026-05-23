@@ -9,8 +9,8 @@
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="messagesIndex()" x-init="init">
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-semibold text-gray-900">Messages</h1>
-            <p class="text-sm text-gray-500 mt-1">Chat with buyers and sellers.</p>
+            <h1 class="text-2xl font-semibold text-gray-900" data-i18n="messages.title">Messages</h1>
+            <p class="text-sm text-gray-500 mt-1" data-i18n="messages.subtitle">Chat with buyers and sellers.</p>
         </div>
         <button @click="refresh()" :disabled="loading"
             class="text-sm border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50">
