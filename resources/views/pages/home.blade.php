@@ -97,8 +97,47 @@
         </div>
     </div>
 
+    {{-- Featured Shops --}}
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <x-heroicon-o-building-storefront class="w-5 h-5 text-indigo-500"/>
+                <span>Shops</span>
+            </h2>
+            <a href="{{ route('stores.index') }}" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">View all</a>
+        </div>
+        {{-- Skeleton shown while loading --}}
+        <div x-show="shops.length === 0" class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1" style="display:none">
+            <template x-for="i in [1,2,3,4,5,6]" :key="i">
+                <div class="shrink-0 w-36 rounded-xl border border-gray-100 bg-gray-100 p-3 flex flex-col items-center animate-pulse">
+                    <div class="w-14 h-14 rounded-full bg-gray-200 mb-2"></div>
+                    <div class="h-2.5 bg-gray-200 rounded w-20 mb-1"></div>
+                    <div class="h-2 bg-gray-200 rounded w-14"></div>
+                </div>
+            </template>
+        </div>
+        <div x-show="shops.length > 0" class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x" style="display:none">
+            <template x-for="shop in shops" :key="'s-' + shop.id">
+                <a :href="'/stores/' + shop.slug"
+                    class="shrink-0 w-36 snap-start bg-white rounded-xl border border-gray-200 p-3 flex flex-col items-center text-center hover:shadow-md hover:border-indigo-200 transition group">
+                    <div class="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-indigo-100 to-pink-100 flex items-center justify-center mb-2 shrink-0">
+                        <template x-if="shop.logo_url">
+                            <img :src="shop.logo_url" :alt="shop.name" class="w-full h-full object-cover">
+                        </template>
+                        <template x-if="!shop.logo_url">
+                            <span class="text-xl font-bold text-indigo-500" x-text="shop.name.charAt(0).toUpperCase()"></span>
+                        </template>
+                    </div>
+                    <p class="text-xs font-semibold text-gray-900 line-clamp-2 leading-tight mb-0.5 group-hover:text-indigo-700 transition" x-text="shop.name"></p>
+                    <p class="text-[11px] text-gray-400 truncate w-full" x-text="shop.city || ''"></p>
+                    <p class="text-[11px] text-indigo-500 mt-0.5" x-text="(shop.products_count || 0) + ' listings'"></p>
+                </a>
+            </template>
+        </div>
+    </div>
+
     {{-- Top-level category cards (khmer24-style) --}}
-    <div class="mb-6">
+    <div class="mb-6" id="categories">
         <div class="flex items-center justify-between mb-3">
             <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide" data-i18n="home.categories">Categories</h2>
             <button x-show="filters.category_id" @click="clearCategory()"
@@ -304,6 +343,7 @@
             categories: [],
             conditions: [],
             brands: [],
+            shops: [],
             banners: [],
             bannerIndex: 0,
             bannerTimer: null,
@@ -341,6 +381,7 @@
                     this.fetchBrands(),
                     this.fetchBanners(),
                     this.fetchTrending(),
+                    this.fetchShops(),
                 ]);
             },
             selectBrand(id) {
@@ -370,6 +411,12 @@
                 try {
                     const { data } = await window.api.get('/products', { params: { featured: 1, per_page: 12, sort: 'featured' } });
                     this.trending = data.products || [];
+                } catch {}
+            },
+            async fetchShops() {
+                try {
+                    const { data } = await window.api.get('/stores', { params: { per_page: 12, sort: 'followers' } });
+                    this.shops = data.stores || [];
                 } catch {}
             },
             get parentCategories() {
