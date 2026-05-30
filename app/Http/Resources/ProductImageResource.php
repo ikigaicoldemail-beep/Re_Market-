@@ -44,6 +44,10 @@ class ProductImageResource extends JsonResource
 
     private function buildUrl(Request $request, string $relativePath): string
     {
+        if ($this->disk === 'external') {
+            return $relativePath;
+        }
+
         $prefix = match ($this->disk) {
             'product-images' => '/storage/products/',
             'public' => '/storage/',

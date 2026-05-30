@@ -12,6 +12,8 @@ Route::delete('/products/{product}', [ProductController::class, 'destroy']);
 Route::post('/products/{product}/images', [ProductController::class, 'uploadImages']);
 Route::post('/products/{product}/schedule-post', [ProductController::class, 'schedulePost']);
 
+Route::get('/products/{product}/review-eligibility', [ProductController::class, 'reviewEligibility']);
+
 Route::get('/product-reports/reasons', [ProductReportController::class, 'reasons']);
 Route::post('/products/{product}/report', [ProductReportController::class, 'store'])
     ->middleware('throttle:report-submit');

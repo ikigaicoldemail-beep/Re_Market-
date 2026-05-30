@@ -1,11 +1,38 @@
 @extends('layouts.app')
 
-@section('title', 'Product Details')
+@section('title', isset($ogProduct) ? $ogProduct->title . ' — ReMarket' : 'Product Details')
+
+@section('meta')
+@if(isset($ogProduct))
+<meta property="og:type" content="product">
+<meta property="og:title" content="{{ $ogProduct->title }}">
+<meta property="og:description" content="{{ Str::limit($ogProduct->description ?? '', 200) }}">
+<meta property="og:url" content="{{ url('/products/' . $ogProduct->id) }}">
+@if($ogProduct->images->isNotEmpty())
+<meta property="og:image" content="{{ $ogProduct->images->firstWhere('is_primary', true)?->url ?? $ogProduct->images->first()->url }}">
+@endif
+<meta property="product:price:amount" content="{{ $ogProduct->price_amount }}">
+<meta property="product:price:currency" content="{{ $ogProduct->currency ?? 'USD' }}">
+@endif
+@endsection
 
 @section('content')
 @include('components.toast')
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="productDetail()" x-init="init">
+    {{-- Breadcrumb --}}
+    <nav x-show="product" class="text-sm text-gray-500 mb-4 flex items-center gap-1 flex-wrap" aria-label="Breadcrumb" style="display:none">
+        <a href="/" class="hover:text-indigo-600">Home</a>
+        <span>/</span>
+        <template x-if="product?.category?.name">
+            <span class="inline-flex items-center gap-1">
+                <a :href="'/products?category=' + product.category.id" class="hover:text-indigo-600" x-text="product.category.name"></a>
+                <span>/</span>
+            </span>
+        </template>
+        <span class="text-gray-900 font-medium truncate max-w-xs" x-text="product?.title"></span>
+    </nav>
+
     <div x-show="loading" class="text-center py-20 text-gray-500" data-i18n="product.loading">Loading product...</div>
 
     <div x-show="error" class="text-center py-20" style="display:none">
@@ -75,8 +102,9 @@
                 </div>
             </div>
 
-            <p class="text-sm text-gray-600 mt-2" x-show="activeStock > 0" style="display:none">
-                <span x-text="activeStock"></span> <span data-i18n="product.in_stock">in stock</span>
+            <p class="text-sm mt-2" x-show="activeStock > 0" style="display:none"
+               :class="activeStock <= 3 ? 'text-amber-600' : 'text-gray-600'">
+                <span x-text="activeStock <= 3 ? 'Only a few left' : 'In stock'"></span>
             </p>
             <p class="text-sm text-red-600 mt-2" x-show="activeStock <= 0" data-i18n="product.out_of_stock" style="display:none">Out of stock</p>
 
@@ -92,79 +120,102 @@
             {{-- Seller / Store --}}
             <div class="mt-6 p-4 bg-white rounded-xl border border-gray-200" x-show="product?.store" style="display:none">
                 <p class="text-xs text-gray-500 mb-1" data-i18n="product.sold_by">Sold by</p>
-                <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
                     <a :href="'/stores/' + product?.store?.id" class="font-medium text-gray-900 hover:text-indigo-600" x-text="product?.store?.name"></a>
-                    <div class="flex gap-2">
-                        <a x-show="product?.store?.telegram_url" :href="product?.store?.telegram_url" target="_blank" rel="noopener"
-                            title="Chat on Telegram"
-                            class="w-9 h-9 rounded-full bg-sky-500 text-white flex items-center justify-center hover:bg-sky-600" style="display:none">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M21.426 2.574L2.13 9.97c-.948.36-.943.86-.171 1.094l4.94 1.541 11.43-7.214c.54-.328 1.034-.151.63.21l-9.258 8.36-.357 5.346c.357 0 .515-.164.715-.358l1.717-1.667 3.563 2.633c.658.363 1.13.175 1.292-.611l2.342-10.99c.243-1.122-.382-1.587-1.547-1.14z"/></svg>
-                        </a>
-                        <a x-show="product?.store?.messenger_url" :href="product?.store?.messenger_url" target="_blank" rel="noopener"
-                            title="Chat on Messenger"
-                            class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700" style="display:none">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.835 1.387 5.36 3.55 7.06V22l3.245-1.78c.864.24 1.78.367 2.705.367 5.523 0 10-4.145 10-9.243C22 6.145 17.523 2 12 2zm.987 12.421l-2.55-2.717-4.937 2.717 5.43-5.764 2.61 2.717 4.876-2.717-5.43 5.764z"/></svg>
-                        </a>
-                    </div>
                 </div>
             </div>
 
             {{-- Actions --}}
             <div class="mt-6 space-y-3">
-                <button @click="addToCart()" :disabled="addingToCart || product?.stock_quantity <= 0"
-                    class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span x-show="!addingToCart" data-i18n="product.add_to_cart">Add to cart</span>
-                    <span x-show="addingToCart" style="display:none">Adding...</span>
-                </button>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <button @click="toggleWishlist()" :disabled="togglingWishlist"
-                        class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-                        <span x-show="!inWishlist" data-i18n="product.save_wishlist">Save to wishlist</span>
-                        <span x-show="inWishlist" data-i18n="product.in_wishlist" style="display:none">In wishlist</span>
-                    </button>
-                    <button @click="showShare = true" class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50" data-i18n="product.share">
-                        Share
-                    </button>
-                </div>
-
-                <button @click="$store.compare.toggle(product.id)"
-                    :class="$store.compare.has(product?.id) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'"
-                    class="w-full border py-2.5 rounded-lg font-medium transition inline-flex items-center justify-center gap-2">
-                    <template x-if="!$store.compare.has(product?.id)">
-                        <span class="inline-flex items-center gap-2">
-                            <x-heroicon-o-arrows-right-left class="w-4 h-4"/>
-                            <span data-i18n="product.compare_add">Add to compare</span>
-                        </span>
-                    </template>
-                    <template x-if="$store.compare.has(product?.id)">
-                        <span class="inline-flex items-center gap-2">
-                            <x-heroicon-s-check class="w-4 h-4"/>
-                            <span data-i18n="product.compare_in">In compare</span>
-                        </span>
-                    </template>
-                </button>
-
+                {{-- Primary CTA: Chat with Seller --}}
                 <button @click="messageSeller()" :disabled="messagingSeller"
                     x-show="product?.user_id && (!window.auth.user() || product.user_id !== window.auth.user().id)"
-                    class="w-full mt-3 border border-indigo-300 text-indigo-700 py-2.5 rounded-lg font-medium hover:bg-indigo-50 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                    class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold text-base hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                     style="display:none">
                     <template x-if="!messagingSeller">
                         <span class="inline-flex items-center gap-2">
-                            <x-heroicon-o-chat-bubble-left-right class="w-4 h-4"/>
-                            <span data-i18n="product.message_seller">Message seller</span>
+                            <x-heroicon-o-chat-bubble-left-right class="w-5 h-5"/>
+                            <span x-text="activeStock <= 0 ? 'Ask about availability' : 'Chat with Seller'"></span>
                         </span>
                     </template>
                     <span x-show="messagingSeller" style="display:none">Opening chat...</span>
                 </button>
 
-                <button @click="findSimilar()" class="w-full mt-3 text-sm text-indigo-600 hover:text-indigo-700 underline" data-i18n="product.find_similar">
-                    Find visually similar items
+                {{-- Own listing CTAs --}}
+                <div x-show="product?.user_id && window.auth.user()?.id === product.user_id"
+                    class="space-y-2" style="display:none">
+                    <a :href="'/me/products/' + productId + '/edit'"
+                        class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold text-base hover:bg-indigo-700 inline-flex items-center justify-center gap-2">
+                        <x-heroicon-o-pencil-square class="w-5 h-5"/>
+                        Edit listing
+                    </a>
+                    <template x-if="product?.status !== 'sold'">
+                        <div>
+                            <template x-if="!confirmSold">
+                                <button @click="confirmSold = true"
+                                    class="w-full border border-gray-300 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-50 inline-flex items-center justify-center gap-2">
+                                    <x-heroicon-o-check-circle class="w-4 h-4"/>
+                                    Mark as sold
+                                </button>
+                            </template>
+                            <template x-if="confirmSold">
+                                <div class="flex items-center justify-center gap-3 py-2.5 text-sm">
+                                    <span class="text-gray-600">Mark this listing as sold?</span>
+                                    <button @click="markAsSold()" :disabled="markingAsSold"
+                                        class="text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg font-medium disabled:opacity-50">
+                                        <span x-text="markingAsSold ? 'Marking...' : 'Yes, sold'"></span>
+                                    </button>
+                                    <button @click="confirmSold = false" class="text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-300">Cancel</button>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <template x-if="product?.status === 'sold'">
+                        <p class="text-center text-sm text-gray-500 py-1">This listing is marked as sold.</p>
+                    </template>
+                </div>
+
+                {{-- Wishlist + Share --}}
+                <div class="grid grid-cols-2 gap-3">
+                    <button @click="toggleWishlist()" :disabled="togglingWishlist"
+                        class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 inline-flex items-center justify-center gap-2">
+                        <template x-if="!inWishlist">
+                            <span class="inline-flex items-center gap-1.5">
+                                <x-heroicon-o-heart class="w-4 h-4"/>
+                                <span data-i18n="product.save_wishlist">Save</span>
+                            </span>
+                        </template>
+                        <template x-if="inWishlist">
+                            <span class="inline-flex items-center gap-1.5 text-red-600">
+                                <x-heroicon-s-heart class="w-4 h-4"/>
+                                <span data-i18n="product.in_wishlist">Saved</span>
+                            </span>
+                        </template>
+                    </button>
+                    <button @click="showShare = true" class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 inline-flex items-center justify-center gap-1.5">
+                        <x-heroicon-o-share class="w-4 h-4"/>
+                        <span data-i18n="product.share">Share</span>
+                    </button>
+                </div>
+
+                {{-- Find visually similar (promoted to button) --}}
+                <button @click="findSimilar()"
+                    class="w-full border border-indigo-300 text-indigo-600 py-2.5 rounded-lg font-medium hover:bg-indigo-50 transition inline-flex items-center justify-center gap-2">
+                    <x-heroicon-o-camera class="w-4 h-4"/>
+                    <span data-i18n="product.find_similar">Find visually similar</span>
                 </button>
+
+                {{-- Compare (demoted to text link) --}}
+                <div class="text-center">
+                    <button @click="$store.compare.toggle(product.id)"
+                        class="text-sm text-gray-500 hover:text-gray-700 underline"
+                        x-text="$store.compare.has(product?.id) ? 'Remove from compare' : 'Add to compare'">
+                    </button>
+                </div>
 
                 <button @click="openReport()"
                     x-show="product?.user_id && (!window.auth.user() || product.user_id !== window.auth.user().id)"
-                    class="w-full mt-1 text-xs text-gray-500 hover:text-red-600 inline-flex items-center justify-center gap-1.5" style="display:none">
+                    class="w-full text-xs text-gray-500 hover:text-red-600 inline-flex items-center justify-center gap-1.5" style="display:none">
                     <x-heroicon-o-flag class="w-3.5 h-3.5"/>
                     <span data-i18n="product.report">Report this listing</span>
                 </button>
@@ -267,7 +318,16 @@
                     </div>
 
                     <div x-show="r.user_id === (window.auth.user()?.id ?? 0)" class="mt-2 flex gap-3 text-xs" style="display:none">
-                        <button @click="deleteReview(r)" class="text-red-600 hover:text-red-700">Delete</button>
+                        <template x-if="!r._confirmDelete">
+                            <button @click="r._confirmDelete = true" class="text-red-600 hover:text-red-700">Delete</button>
+                        </template>
+                        <template x-if="r._confirmDelete">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="text-gray-500">Delete review?</span>
+                                <button @click="deleteReview(r)" class="text-red-600 font-medium hover:text-red-700">Yes, delete</button>
+                                <button @click="r._confirmDelete = false" class="text-gray-400 hover:text-gray-600">Cancel</button>
+                            </span>
+                        </template>
                     </div>
                 </div>
             </template>
@@ -414,7 +474,6 @@
             activeImage: '',
             loading: true,
             error: '',
-            addingToCart: false,
             togglingWishlist: false,
             inWishlist: false,
             showShare: false,
@@ -428,6 +487,8 @@
             reportReasons: [],
             reportForm: { reason: '', details: '' },
             reportSubmitting: false,
+            confirmSold: false,
+            markingAsSold: false,
             reviews: [],
             reviewsSummary: { total: 0, average: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } },
             myReview: null,
@@ -436,12 +497,12 @@
             reviewForm: { rating: 0, title: '', body: '' },
             reviewSubmitting: false,
             async init() {
-                const segments = window.location.pathname.split('/').filter(Boolean);
-                this.productId = parseInt(segments[segments.length - 1]);
                 await this.fetch();
-                await this.checkWishlist();
-                await this.fetchReviews();
-                this.checkReviewEligibility();
+                await Promise.all([
+                    this.checkWishlist(),
+                    this.fetchReviews(),
+                    this.checkReviewEligibility(),
+                ]);
             },
             get canWriteReview() {
                 return this.reviewEligibility.eligible && !this.myReview;
@@ -476,9 +537,8 @@
             async checkWishlist() {
                 if (!window.auth.isLoggedIn() || !this.product) return;
                 try {
-                    const { data } = await window.api.get('/wishlist', { params: { per_page: 100 } });
-                    const list = Array.isArray(data?.products) ? data.products : [];
-                    this.inWishlist = list.some(p => p?.id === this.product.id);
+                    const { data } = await window.api.get('/wishlist/check', { params: { product_id: this.product.id } });
+                    this.inWishlist = data.wishlisted ?? false;
                 } catch {}
             },
             async messageSeller() {
@@ -518,24 +578,6 @@
                     this.loading = false;
                 }
             },
-            async addToCart() {
-                if (!window.auth.isLoggedIn()) {
-                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-                    return;
-                }
-                this.addingToCart = true;
-                try {
-                    const payload = { product_id: this.product.id, quantity: 1 };
-                    if (this.selectedVariant?.id) payload.variant_id = this.selectedVariant.id;
-                    await window.api.post('/cart/items', payload);
-                    await Alpine.store('cart').refresh();
-                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Added to cart!' } }));
-                } catch (e) {
-                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
-                } finally {
-                    this.addingToCart = false;
-                }
-            },
             async toggleWishlist() {
                 if (!window.auth.isLoggedIn()) {
                     window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
@@ -568,30 +610,18 @@
                 }
                 return this.shareUrl;
             },
-            async shareToPlatform(platform) {
-                if (!window.auth.isLoggedIn()) {
-                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-                    return;
+            shareToPlatform(platform) {
+                // Construct URL immediately — no await before window.open or the
+                // browser treats it as a popup and blocks it.
+                const url = window.location.origin + '/products/' + this.product.id;
+                if (platform === 'facebook') {
+                    window.open(
+                        'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url),
+                        '_blank',
+                        'width=600,height=600,noopener,noreferrer'
+                    );
                 }
-                this.sharingPlatform = true;
-                try {
-                    const url = await this.ensureShareUrl();
-                    await window.api.post('/products/share', {
-                        product_id: this.product.id,
-                        platform,
-                        destination: url,
-                    });
-                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: `Shared on ${platform}!` } }));
-                    // Also open intent URL for facebook
-                    if (platform === 'facebook') {
-                        window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank', 'width=600,height=600');
-                    }
-                    this.showShare = false;
-                } catch (e) {
-                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
-                } finally {
-                    this.sharingPlatform = false;
-                }
+                this.showShare = false;
             },
             heroSrc(img) {
                 return img.urls?.large_webp || img.urls?.large || img.url;
@@ -608,17 +638,13 @@
             },
             async findSimilar() {
                 if (!this.product) return;
-                if (!window.auth.isLoggedIn()) {
-                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-                    return;
-                }
                 this.showSimilar = true;
                 if (this.similarProducts.length > 0) return;
                 this.similarLoading = true;
                 try {
                     const { data } = await window.api.post('/ai/similarity-search', {
                         product_id: this.product.id,
-                        top_k: 9,
+                        top_k: 20,
                     });
                     this.similarProducts = (data.products || []).filter(p => p.id !== this.product.id);
                 } catch (e) {
@@ -638,29 +664,13 @@
                 } catch {}
             },
             async checkReviewEligibility() {
-                const me = window.auth.user();
-                if (!me) {
+                if (!window.auth.isLoggedIn() || !this.product) {
                     this.reviewEligibility = { checked: true, eligible: false, reason: 'Sign in to leave a review.' };
                     return;
                 }
-                if (me.id === this.product?.user_id) {
-                    this.reviewEligibility = { checked: true, eligible: false, reason: '' };
-                    return;
-                }
-                if (this.myReview) {
-                    this.reviewEligibility = { checked: true, eligible: true, reason: '' };
-                    return;
-                }
                 try {
-                    const { data } = await window.api.get('/orders', { params: { per_page: 50 } });
-                    const orders = data.orders || [];
-                    const hasPaid = orders.some(o => o.payment_status === 'paid'
-                        && (o.items || []).some(i => i.product_id === this.product.id));
-                    if (hasPaid) {
-                        this.reviewEligibility = { checked: true, eligible: true, reason: '' };
-                    } else {
-                        this.reviewEligibility = { checked: true, eligible: false, reason: 'Only buyers who have purchased this product can leave a review.' };
-                    }
+                    const { data } = await window.api.get('/products/' + this.product.id + '/review-eligibility');
+                    this.reviewEligibility = { checked: true, eligible: data.eligible, reason: data.reason || '' };
                 } catch {
                     this.reviewEligibility = { checked: true, eligible: false, reason: '' };
                 }
@@ -691,14 +701,28 @@
                 }
             },
             async deleteReview(r) {
-                if (!confirm('Delete your review?')) return;
                 try {
                     await window.api.delete('/reviews/' + r.id);
+                    r._confirmDelete = false;
                     window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'info', message: 'Review deleted.' } }));
                     this.myReview = null;
                     await this.fetchReviews();
                 } catch (e) {
+                    r._confirmDelete = false;
                     window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                }
+            },
+            async markAsSold() {
+                this.markingAsSold = true;
+                try {
+                    await window.api.put('/products/' + this.productId, { status: 'sold' });
+                    this.product.status = 'sold';
+                    this.confirmSold = false;
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Listing marked as sold.' } }));
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                } finally {
+                    this.markingAsSold = false;
                 }
             },
             async openReport() {
