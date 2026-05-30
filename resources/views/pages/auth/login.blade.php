@@ -72,7 +72,11 @@
                     Alpine.store('auth').setSession(data.token, data.user);
                     const params = new URLSearchParams(window.location.search);
                     const next = params.get('next');
-                    window.location.href = next || '/';
+                    if (data.user?.role === 'admin') {
+                        window.location.href = '/admin';
+                    } else {
+                        window.location.href = next || '/';
+                    }
                 } catch (e) {
                     this.error = window.extractApiError(e);
                 } finally {

@@ -19,7 +19,7 @@
                         <a href="#" class="pr-3 hover:text-indigo-700" data-i18n="nav.about_us">About Us</a>
                         <a href="{{ route('profile') }}" class="px-3 hover:text-indigo-700" data-i18n="nav.my_account">My Account</a>
                         <a href="{{ route('wishlist') }}" class="px-3 hover:text-indigo-700" data-i18n="nav.wishlist">Wishlist</a>
-                        <a href="{{ route('orders.index') }}" class="pl-3 hover:text-indigo-700" data-i18n="nav.order_tracking">Order Tracking</a>
+                        <a href="{{ route('messages.index') }}" class="pl-3 hover:text-indigo-700" data-i18n="nav.messages">Messages</a>
                     </div>
                     {{-- Center tag --}}
                     <div class="text-center font-semibold text-indigo-700" data-i18n="nav.secure_delivery">
@@ -94,17 +94,6 @@
                         <span class="text-sm hidden lg:inline" data-i18n="nav.wishlist">Wishlist</span>
                     </a>
 
-                    {{-- Cart --}}
-                    <a href="{{ route('cart') }}" class="relative flex items-center gap-2 text-gray-700 hover:text-indigo-700">
-                        <span class="relative">
-                            <x-heroicon-o-shopping-cart class="w-6 h-6"/>
-                            <span x-show="$store.auth.loggedIn && $store.cart.count > 0"
-                                x-text="$store.cart.count"
-                                class="absolute -top-1.5 -right-2 bg-indigo-600 text-white text-[10px] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center font-semibold" style="display:none"></span>
-                        </span>
-                        <span class="text-sm hidden lg:inline" data-i18n="nav.cart">Cart</span>
-                    </a>
-
                     {{-- Messages (only when logged in) --}}
                     <template x-if="$store.auth.loggedIn">
                         <a href="{{ route('messages.index') }}" class="relative text-gray-700 hover:text-indigo-700" title="Messages" :title="window.t ? window.t('nav.messages') : 'Messages'">
@@ -141,9 +130,6 @@
                                 <div class="px-4 py-2 text-xs text-gray-400 uppercase tracking-wider" data-i18n="nav.account">Account</div>
                                 <a href="{{ route('profile') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                                     <x-heroicon-o-user class="w-4 h-4"/><span data-i18n="nav.profile">Profile</span>
-                                </a>
-                                <a href="{{ route('orders.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                                    <x-heroicon-o-clipboard-document-list class="w-4 h-4"/><span data-i18n="nav.orders">My Orders</span>
                                 </a>
                                 <a href="{{ route('messages.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                                     <x-heroicon-o-chat-bubble-left-right class="w-4 h-4"/><span data-i18n="nav.messages">Messages</span>

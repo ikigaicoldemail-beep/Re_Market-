@@ -111,23 +111,51 @@
 
             {{-- Actions --}}
             <div class="mt-6 space-y-3">
-                <button @click="addToCart()" :disabled="addingToCart || product?.stock_quantity <= 0"
-                    class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span x-show="!addingToCart" data-i18n="product.add_to_cart">Add to cart</span>
-                    <span x-show="addingToCart" style="display:none">Adding...</span>
+                {{-- Primary CTA: Chat with Seller --}}
+                <button @click="messageSeller()" :disabled="messagingSeller || activeStock <= 0"
+                    x-show="product?.user_id && (!window.auth.user() || product.user_id !== window.auth.user().id)"
+                    class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold text-base hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    style="display:none">
+                    <template x-if="!messagingSeller">
+                        <span class="inline-flex items-center gap-2">
+                            <x-heroicon-o-chat-bubble-left-right class="w-5 h-5"/>
+                            <span>Chat with Seller</span>
+                        </span>
+                    </template>
+                    <span x-show="messagingSeller" style="display:none">Opening chat...</span>
                 </button>
 
+                {{-- Own listing indicator --}}
+                <div x-show="product?.user_id && window.auth.user()?.id === product.user_id"
+                    class="w-full bg-gray-100 text-gray-500 py-3 rounded-lg text-center text-sm font-medium"
+                    style="display:none">
+                    This is your listing
+                </div>
+
+                {{-- Wishlist + Share --}}
                 <div class="grid grid-cols-2 gap-3">
                     <button @click="toggleWishlist()" :disabled="togglingWishlist"
-                        class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-                        <span x-show="!inWishlist" data-i18n="product.save_wishlist">Save to wishlist</span>
-                        <span x-show="inWishlist" data-i18n="product.in_wishlist" style="display:none">In wishlist</span>
+                        class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 inline-flex items-center justify-center gap-2">
+                        <template x-if="!inWishlist">
+                            <span class="inline-flex items-center gap-1.5">
+                                <x-heroicon-o-heart class="w-4 h-4"/>
+                                <span data-i18n="product.save_wishlist">Save</span>
+                            </span>
+                        </template>
+                        <template x-if="inWishlist">
+                            <span class="inline-flex items-center gap-1.5 text-red-600">
+                                <x-heroicon-s-heart class="w-4 h-4"/>
+                                <span data-i18n="product.in_wishlist">Saved</span>
+                            </span>
+                        </template>
                     </button>
-                    <button @click="showShare = true" class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50" data-i18n="product.share">
-                        Share
+                    <button @click="showShare = true" class="border border-gray-300 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 inline-flex items-center justify-center gap-1.5">
+                        <x-heroicon-o-share class="w-4 h-4"/>
+                        <span data-i18n="product.share">Share</span>
                     </button>
                 </div>
 
+                {{-- Compare --}}
                 <button @click="$store.compare.toggle(product.id)"
                     :class="$store.compare.has(product?.id) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'"
                     class="w-full border py-2.5 rounded-lg font-medium transition inline-flex items-center justify-center gap-2">
@@ -145,26 +173,13 @@
                     </template>
                 </button>
 
-                <button @click="messageSeller()" :disabled="messagingSeller"
-                    x-show="product?.user_id && (!window.auth.user() || product.user_id !== window.auth.user().id)"
-                    class="w-full mt-3 border border-indigo-300 text-indigo-700 py-2.5 rounded-lg font-medium hover:bg-indigo-50 disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                    style="display:none">
-                    <template x-if="!messagingSeller">
-                        <span class="inline-flex items-center gap-2">
-                            <x-heroicon-o-chat-bubble-left-right class="w-4 h-4"/>
-                            <span data-i18n="product.message_seller">Message seller</span>
-                        </span>
-                    </template>
-                    <span x-show="messagingSeller" style="display:none">Opening chat...</span>
-                </button>
-
-                <button @click="findSimilar()" class="w-full mt-3 text-sm text-indigo-600 hover:text-indigo-700 underline" data-i18n="product.find_similar">
+                <button @click="findSimilar()" class="w-full text-sm text-indigo-600 hover:text-indigo-700 underline" data-i18n="product.find_similar">
                     Find visually similar items
                 </button>
 
                 <button @click="openReport()"
                     x-show="product?.user_id && (!window.auth.user() || product.user_id !== window.auth.user().id)"
-                    class="w-full mt-1 text-xs text-gray-500 hover:text-red-600 inline-flex items-center justify-center gap-1.5" style="display:none">
+                    class="w-full text-xs text-gray-500 hover:text-red-600 inline-flex items-center justify-center gap-1.5" style="display:none">
                     <x-heroicon-o-flag class="w-3.5 h-3.5"/>
                     <span data-i18n="product.report">Report this listing</span>
                 </button>
@@ -414,7 +429,6 @@
             activeImage: '',
             loading: true,
             error: '',
-            addingToCart: false,
             togglingWishlist: false,
             inWishlist: false,
             showShare: false,
@@ -516,24 +530,6 @@
                     this.error = window.extractApiError(e) || 'Product not found.';
                 } finally {
                     this.loading = false;
-                }
-            },
-            async addToCart() {
-                if (!window.auth.isLoggedIn()) {
-                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-                    return;
-                }
-                this.addingToCart = true;
-                try {
-                    const payload = { product_id: this.product.id, quantity: 1 };
-                    if (this.selectedVariant?.id) payload.variant_id = this.selectedVariant.id;
-                    await window.api.post('/cart/items', payload);
-                    await Alpine.store('cart').refresh();
-                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Added to cart!' } }));
-                } catch (e) {
-                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
-                } finally {
-                    this.addingToCart = false;
                 }
             },
             async toggleWishlist() {
