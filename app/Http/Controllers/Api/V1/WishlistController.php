@@ -14,6 +14,17 @@ class WishlistController extends Controller
 {
     public function __construct(private readonly WishlistService $wishlistService) {}
 
+    public function check(Request $request): JsonResponse
+    {
+        $productId = (int) $request->query('product_id');
+        $wishlisted = $request->user()
+            ->wishlistProducts()
+            ->where('product_id', $productId)
+            ->exists();
+
+        return response()->json(['wishlisted' => $wishlisted]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $products = $this->wishlistService->list($request->user());

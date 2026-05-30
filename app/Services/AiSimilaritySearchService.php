@@ -99,6 +99,14 @@ class AiSimilaritySearchService
         return [$embedding['vector'], null, null, $path];
     }
 
+    /**
+     * Minimum cosine similarity a product image must reach to appear in results.
+     * Products below this threshold are not "visually similar" — they are just
+     * the least-dissimilar items in the catalogue and should not be shown.
+     * Range 0–1; 0.55 corresponds to a clearly related visual match with CLIP.
+     */
+    private const SIMILARITY_THRESHOLD = 0.55;
+
     private function rankProducts(array $queryVector, ?Product $sourceProduct, int $topK): Collection
     {
         $candidates = Product::query()
@@ -113,9 +121,14 @@ class AiSimilaritySearchService
                     ->filter()
                     ->first();
 
-                $vectorScore = $productVector
-                    ? $this->cosineSimilarity($queryVector, $productVector)
-                    : 0.0;
+                // Products with no indexed image are skipped entirely.
+                if (! $productVector) {
+                    $product->similarity_score = 0.0;
+
+                    return $product;
+                }
+
+                $vectorScore = $this->cosineSimilarity($queryVector, $productVector);
 
                 $heuristicScore = 0.0;
 
@@ -138,6 +151,7 @@ class AiSimilaritySearchService
 
                 return $product;
             })
+            ->filter(fn (Product $p) => $p->similarity_score >= self::SIMILARITY_THRESHOLD)
             ->sortByDesc('similarity_score')
             ->take($topK)
             ->values();

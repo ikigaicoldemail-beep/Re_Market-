@@ -12,6 +12,7 @@ use App\Http\Requests\Social\ScheduleProductPostRequest;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\ScheduledPostResource;
 use App\Http\Resources\StoreResource;
+use App\Models\Conversation;
 use App\Models\Product;
 use App\Models\Store;
 use App\Services\ProductService;
@@ -148,6 +149,33 @@ class ProductController extends Controller
                 'per_page' => $products->perPage(),
                 'total' => $products->total(),
             ],
+        ]);
+    }
+
+    public function reviewEligibility(Request $request, Product $product): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['eligible' => false, 'reason' => 'Sign in to leave a review.']);
+        }
+
+        if ($user->id === $product->user_id) {
+            return response()->json(['eligible' => false, 'reason' => '']);
+        }
+
+        $hasReview = $product->reviews()->where('user_id', $user->id)->exists();
+        if ($hasReview) {
+            return response()->json(['eligible' => true, 'reason' => '']);
+        }
+
+        $hasConversation = Conversation::where('product_id', $product->id)
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $user->id))
+            ->exists();
+
+        return response()->json([
+            'eligible' => $hasConversation,
+            'reason' => $hasConversation ? '' : 'Chat with the seller about this item first to leave a review.',
         ]);
     }
 

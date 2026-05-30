@@ -37,16 +37,6 @@
                         </template>
                     </label>
 
-                    <div class="mt-4">
-                        <label for="topK" class="block text-sm font-medium text-gray-700 mb-1">Results to return</label>
-                        <select id="topK" x-model.number="topK" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="5">5 products</option>
-                            <option value="10">10 products</option>
-                            <option value="15">15 products</option>
-                            <option value="20">20 products</option>
-                        </select>
-                    </div>
-
                     <button type="submit" :disabled="!file || searching"
                         class="w-full mt-4 bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
                         <span x-show="!searching">Find similar</span>
@@ -81,7 +71,7 @@
             <div x-show="!searching && products.length > 0" style="display:none">
                 <div class="flex items-center justify-between mb-4">
                     <p class="text-sm text-gray-600">
-                        <span x-text="products.length"></span> similar product<span x-show="products.length !== 1">s</span> found
+                        <span x-text="products.length"></span> matching product<span x-show="products.length !== 1">s</span> found
                     </p>
                     <p class="text-xs text-gray-400" x-text="log?.provider ? 'via ' + log.provider : ''"></p>
                 </div>
@@ -112,7 +102,7 @@
         return {
             file: null,
             preview: '',
-            topK: 10,
+            topK: 20,
             searching: false,
             searched: false,
             products: [],

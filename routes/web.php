@@ -11,9 +11,10 @@ Route::view('/register', 'pages.auth.register')->name('register');
 Route::view('/forgot-password', 'pages.auth.forgot-password')->name('forgot-password');
 Route::view('/reset-password', 'pages.auth.reset-password')->name('reset-password');
 
-Route::view('/products/{id}', 'pages.products.show')
-    ->where('id', '[0-9]+')
-    ->name('products.show');
+Route::get('/products/{id}', function ($id) {
+    $product = \App\Models\Product::with(['images'])->find($id);
+    return view('pages.products.show', ['id' => (int) $id, 'ogProduct' => $product]);
+})->where('id', '[0-9]+')->name('products.show');
 
 Route::view('/cart', 'pages.cart')->name('cart');
 Route::view('/checkout', 'pages.checkout')->name('checkout');
