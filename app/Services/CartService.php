@@ -107,21 +107,29 @@ class CartService
     public function updateItem(CartItem $item, int $quantity): Cart
     {
         DB::transaction(function () use ($item, $quantity) {
+            $variant = $item->product_variant_id
+                ? ProductVariant::query()->whereKey($item->product_variant_id)->lockForUpdate()->firstOrFail()
+                : null;
+
             $product = Product::query()
                 ->whereKey($item->product_id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($product->stock_quantity < $quantity) {
+            $stockSource = $variant ?? $product;
+
+            if ($stockSource->stock_quantity < $quantity) {
                 throw ValidationException::withMessages([
                     'quantity' => ['Requested quantity exceeds available stock.'],
                 ]);
             }
 
+            $unitPrice = $variant?->price_amount ?? $product->price_amount;
+
             $item->update([
                 'quantity' => $quantity,
-                'unit_price_amount' => $product->price_amount,
-                'line_total_amount' => $quantity * $product->price_amount,
+                'unit_price_amount' => $unitPrice,
+                'line_total_amount' => $quantity * $unitPrice,
             ]);
         });
 

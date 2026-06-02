@@ -67,7 +67,8 @@ Route::get('/oauth/{provider}/callback', [SocialOAuthController::class, 'callbac
     ->where('provider', 'facebook|tiktok')
     ->name('oauth.callback');
 
-// Admin
+// Admin — client-side guard (admin-guard component) redirects to /login if
+// not authenticated; API routes enforce role:admin server-side.
 Route::view('/admin', 'pages.admin.index')->name('admin.index');
 Route::view('/admin/users', 'pages.admin.users')->name('admin.users');
 Route::view('/admin/stores', 'pages.admin.stores')->name('admin.stores');
