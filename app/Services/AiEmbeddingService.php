@@ -7,6 +7,7 @@ use App\Models\ProductImage;
 use App\Models\ProductImageEmbedding;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class AiEmbeddingService
 {
@@ -14,8 +15,28 @@ class AiEmbeddingService
 
     public function generateForProductImage(ProductImage $productImage): ProductImageEmbedding
     {
-        $absolutePath = Storage::disk($productImage->disk)->path($productImage->path);
-        $result = $this->client->embedFromPath($absolutePath);
+        $tempFile = null;
+
+        if ($productImage->disk === 'external') {
+            // External URL (e.g. picsum.photos) — download to a temp file for embedding.
+            $tempFile = tempnam(sys_get_temp_dir(), 'ai_embed_');
+            $imageBytes = @file_get_contents($productImage->path);
+            if ($imageBytes === false) {
+                throw new RuntimeException("Failed to download external image: {$productImage->path}");
+            }
+            file_put_contents($tempFile, $imageBytes);
+            $absolutePath = $tempFile;
+        } else {
+            $absolutePath = Storage::disk($productImage->disk)->path($productImage->path);
+        }
+
+        try {
+            $result = $this->client->embedFromPath($absolutePath);
+        } finally {
+            if ($tempFile && file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
 
         return DB::transaction(function () use ($productImage, $result) {
             $embedding = ProductImageEmbedding::updateOrCreate(
