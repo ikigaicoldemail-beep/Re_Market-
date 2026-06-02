@@ -7,11 +7,13 @@ use App\Integrations\Ai\FakeImageEmbeddingClient;
 use App\Integrations\Ai\HuggingFaceImageEmbeddingClient;
 use App\Integrations\Social\FacebookSocialClient;
 use App\Integrations\Social\TikTokSocialClient;
+use App\Models\Store;
 use App\Services\SocialPlatformManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -48,6 +50,12 @@ class AppServiceProvider extends ServiceProvider
         // under the JWT guard so Echo private-channel auth works.
         Broadcast::routes(['middleware' => ['auth:api']]);
 
+        Route::bind('store', function (string $value): Store {
+            return Store::query()
+                ->where($this->isNumericRouteKey($value) ? 'id' : 'slug', $value)
+                ->firstOrFail();
+        });
+
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute((int) env('API_RATE_LIMIT', 120))
                 ->by($request->user()?->id ?: $request->ip());
@@ -83,5 +91,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perHour((int) env('REPORT_RATE_LIMIT', 5))
                 ->by($request->user()?->id ?: $request->ip());
         });
+    }
+
+    private function isNumericRouteKey(string $value): bool
+    {
+        return preg_match('/^[1-9][0-9]*$/', $value) === 1;
     }
 }

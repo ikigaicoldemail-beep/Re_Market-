@@ -661,7 +661,7 @@ class AdminController extends Controller
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($filters['reason'] ?? null, fn ($q, $v) => $q->where('reason', $v))
             ->when($filters['product_id'] ?? null, fn ($q, $v) => $q->where('product_id', $v))
-            ->orderByRaw("FIELD(status, 'open') DESC")
+            ->orderByRaw("CASE WHEN status = 'open' THEN 0 ELSE 1 END")
             ->latest()
             ->paginate($filters['per_page'] ?? 20)
             ->withQueryString();

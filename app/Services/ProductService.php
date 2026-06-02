@@ -35,19 +35,21 @@ class ProductService
 
         if (! empty($filters['search'])) {
             $search = trim((string) $filters['search']);
-            if (mb_strlen($search) >= 3) {
+            if (mb_strlen($search) >= 3 && DB::connection()->getDriverName() === 'mysql') {
                 // FULLTEXT BOOLEAN MODE with wildcard suffix on each token for prefix matching.
                 $tokens = preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY);
                 $expr = collect($tokens)
                     ->map(fn ($t) => '+'.preg_replace('/[+\-><()~*"@]/u', '', $t).'*')
+                    ->filter(fn ($t) => $t !== '+*')
                     ->implode(' ');
-                $query->whereRaw('MATCH(title, description) AGAINST(? IN BOOLEAN MODE)', [$expr]);
+
+                if ($expr !== '') {
+                    $query->whereRaw('MATCH(title, description) AGAINST(? IN BOOLEAN MODE)', [$expr]);
+                } else {
+                    $this->applyLikeSearch($query, $search);
+                }
             } else {
-                $query->where(function ($builder) use ($search) {
-                    $builder
-                        ->where('title', 'like', '%'.$search.'%')
-                        ->orWhere('description', 'like', '%'.$search.'%');
-                });
+                $this->applyLikeSearch($query, $search);
             }
         }
 
@@ -370,5 +372,14 @@ class ProductService
         }
 
         return $slug;
+    }
+
+    private function applyLikeSearch($query, string $search): void
+    {
+        $query->where(function ($builder) use ($search) {
+            $builder
+                ->where('title', 'like', '%'.$search.'%')
+                ->orWhere('description', 'like', '%'.$search.'%');
+        });
     }
 }

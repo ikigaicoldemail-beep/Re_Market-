@@ -178,7 +178,7 @@
             },
             async init() {
                 const segments = window.location.pathname.split('/').filter(Boolean);
-                this.storeId = parseInt(segments[segments.length - 1]);
+                this.storeId = segments[segments.length - 1];
                 await this.fetch();
             },
             async fetch() {

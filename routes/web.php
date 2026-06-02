@@ -39,7 +39,6 @@ Route::view('/me/scheduled-listings', 'pages.seller.products.scheduled')->name('
 // Public stores
 Route::view('/stores', 'pages.stores.index')->name('stores.index');
 Route::view('/stores/{id}', 'pages.stores.show')
-    ->where('id', '[0-9]+')
     ->name('stores.show');
 
 // Public categories browse

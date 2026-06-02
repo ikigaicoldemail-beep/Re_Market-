@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -104,7 +105,7 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(SocialPost::class);
     }
 
-    public function scheduledPosts(): HasMany
+    public function scheduledPosts(): HasManyThrough
     {
         return $this->hasManyThrough(ScheduledPost::class, SocialPost::class);
     }

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Models\Category;
+use App\Models\Product;
 use App\Models\ProductCondition;
 use App\Models\Store;
 use App\Models\User;
@@ -59,13 +60,13 @@ class ProductApiTest extends TestCase
         $publishedStore = Store::factory()->create();
         $draftStore = Store::factory()->create();
 
-        \App\Models\Product::factory()->forStore($publishedStore)->create([
+        Product::factory()->forStore($publishedStore)->create([
             'title' => 'Published Item',
             'status' => 'published',
             'visibility' => 'public',
         ]);
 
-        \App\Models\Product::factory()->forStore($draftStore)->create([
+        Product::factory()->forStore($draftStore)->create([
             'title' => 'Draft Item',
             'status' => 'draft',
             'visibility' => 'public',
@@ -76,5 +77,31 @@ class ProductApiTest extends TestCase
         $response->assertOk();
         $response->assertSee('Published Item');
         $response->assertDontSee('Draft Item');
+    }
+
+    public function test_public_products_search_works_with_three_or_more_character_terms(): void
+    {
+        $matchingStore = Store::factory()->create();
+        $otherStore = Store::factory()->create();
+
+        Product::factory()->forStore($matchingStore)->create([
+            'title' => 'Vintage Phone',
+            'description' => 'A working old mobile device.',
+            'status' => 'published',
+            'visibility' => 'public',
+        ]);
+
+        Product::factory()->forStore($otherStore)->create([
+            'title' => 'Canvas Bag',
+            'description' => 'A sturdy reusable tote.',
+            'status' => 'published',
+            'visibility' => 'public',
+        ]);
+
+        $response = $this->getJson('/api/v1/products?search=phone');
+
+        $response->assertOk();
+        $response->assertSee('Vintage Phone');
+        $response->assertDontSee('Canvas Bag');
     }
 }

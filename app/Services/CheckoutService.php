@@ -131,15 +131,20 @@ class CheckoutService
                 if ($variant) {
                     $variant->stock_quantity -= $item->quantity;
                     $variant->save();
+
+                    if (! ProductVariant::where('product_id', $product->id)->where('stock_quantity', '>', 0)->exists()) {
+                        $product->status = 'sold';
+                        $product->save();
+                    }
+                } else {
+                    $product->stock_quantity -= $item->quantity;
+
+                    if ($product->stock_quantity <= 0) {
+                        $product->status = 'sold';
+                    }
+
+                    $product->save();
                 }
-
-                $product->stock_quantity -= $item->quantity;
-
-                if ($product->stock_quantity <= 0) {
-                    $product->status = 'sold';
-                }
-
-                $product->save();
             }
 
             $order->payments()->create([
