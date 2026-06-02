@@ -36,8 +36,9 @@ return [
     ],
 
     'ai_similarity' => [
-        'provider' => env('AI_SIMILARITY_PROVIDER', 'fake-image-embedding'),
-        'model' => env('AI_SIMILARITY_MODEL', 'fake-hash-v1'),
+        // Auto-switch to HuggingFace when an API key is present; override with AI_SIMILARITY_PROVIDER.
+        'provider' => env('AI_SIMILARITY_PROVIDER', env('AI_SIMILARITY_API_KEY') ? 'huggingface-clip' : 'fake-image-embedding'),
+        'model' => env('AI_SIMILARITY_MODEL', 'facebook/data2vec-vision-base'),
         'api_key' => env('AI_SIMILARITY_API_KEY'),
         'endpoint' => env('AI_SIMILARITY_ENDPOINT'),
     ],
