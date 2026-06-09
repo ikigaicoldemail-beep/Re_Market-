@@ -35,6 +35,23 @@
 
                 {{-- Right action cluster --}}
                 <div class="flex items-center gap-4 ml-auto" x-data>
+                    {{-- Compare --}}
+                    <a href="{{ route('compare') }}" class="hidden sm:flex relative items-center gap-2 text-gray-700 hover:text-indigo-700">
+                        <span class="relative">
+                            <x-heroicon-o-arrows-right-left class="w-6 h-6"/>
+                            <span x-show="$store.compare.count > 0"
+                                x-text="$store.compare.count"
+                                class="absolute -top-1.5 -right-2 bg-indigo-600 text-white text-[10px] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center font-semibold" style="display:none"></span>
+                        </span>
+                        <span class="text-sm hidden lg:inline" data-i18n="nav.compare">Compare</span>
+                    </a>
+
+                    {{-- Wishlist --}}
+                    <a href="{{ route('wishlist') }}" class="hidden sm:flex relative items-center gap-2 text-gray-700 hover:text-indigo-700">
+                        <x-heroicon-o-heart class="w-6 h-6"/>
+                        <span class="text-sm hidden lg:inline" data-i18n="nav.wishlist">Wishlist</span>
+                    </a>
+
                     {{-- Language switcher --}}
                     <div class="relative" x-data="{ open: false, locale: (window.currentLocale && window.currentLocale()) || 'en' }"
                          x-init="window.addEventListener('i18n:changed', e => locale = e.detail.locale)">
@@ -61,23 +78,6 @@
                             </button>
                         </div>
                     </div>
-
-                    {{-- Compare --}}
-                    <a href="{{ route('compare') }}" class="hidden sm:flex relative items-center gap-2 text-gray-700 hover:text-indigo-700">
-                        <span class="relative">
-                            <x-heroicon-o-arrows-right-left class="w-6 h-6"/>
-                            <span x-show="$store.compare.count > 0"
-                                x-text="$store.compare.count"
-                                class="absolute -top-1.5 -right-2 bg-indigo-600 text-white text-[10px] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center font-semibold" style="display:none"></span>
-                        </span>
-                        <span class="text-sm hidden lg:inline" data-i18n="nav.compare">Compare</span>
-                    </a>
-
-                    {{-- Wishlist --}}
-                    <a href="{{ route('wishlist') }}" class="hidden sm:flex relative items-center gap-2 text-gray-700 hover:text-indigo-700">
-                        <x-heroicon-o-heart class="w-6 h-6"/>
-                        <span class="text-sm hidden lg:inline" data-i18n="nav.wishlist">Wishlist</span>
-                    </a>
 
                     {{-- Messages (only when logged in) --}}
                     <template x-if="$store.auth.loggedIn">
