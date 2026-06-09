@@ -29,7 +29,4 @@ RUN composer install --no-dev --optimize-autoloader
 # Node deps + Vite build
 RUN npm ci && npm run build
 
-CMD php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan migrate --force && \
-    php artisan serve --host=0.0.0.0 --port=${PORT}
+CMD php artisan serve --host=0.0.0.0 --port=${PORT}
