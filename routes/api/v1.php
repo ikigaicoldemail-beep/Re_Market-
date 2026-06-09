@@ -16,9 +16,7 @@ Route::middleware(['auth:api', 'account.active', 'activity.log'])->group(functio
     require __DIR__.'/v1/admin.php';
     require __DIR__.'/v1/profile.php';
     require __DIR__.'/v1/stores.php';
-    require __DIR__.'/v1/addresses.php';
     require __DIR__.'/v1/wishlist.php';
-    require __DIR__.'/v1/commerce.php';
     require __DIR__.'/v1/products.php';
     require __DIR__.'/v1/social.php';
     require __DIR__.'/v1/chat.php';

@@ -12,17 +12,16 @@ Current active scope:
 - User profile, avatar, and cover upload
 - Seller store/page creation and management
 - Product catalog, categories, brands, conditions, product images, variants, and public browsing
-- Cart, checkout, orders, manual/COD-style payment status, and order cancellation
-- Saved addresses, wishlist, reviews, reports, notifications, and compare page
+- Wishlist, reviews, reports, notifications, and compare page
 - Buyer-seller conversations and messages
-- Facebook-focused product sharing, auto-posting, and scheduled posts
-- Admin management for users, stores, products, orders, categories, brands, promo banners, and reports
+- Simulated Facebook product sharing, auto-posting, and scheduled posts
+- Admin management for users, stores, products, categories, brands, promo banners, and reports
 
 Removed from active scope:
 
 - Visual search / AI similarity search
-- Online payment gateways, refunds, shipping providers, and discount systems
-- TikTok publishing UI as a completed feature; TikTok code remains integration scaffolding/future work
+- Cart, checkout, orders, payments, delivery, saved addresses, refunds, shipping providers, and discount systems
+- Non-Facebook social publishing
 
 ## Tech Stack
 
@@ -119,21 +118,13 @@ DB_PASSWORD=
 
 Facebook:
 
+The current classroom scope uses simulated Facebook posting, so these values are optional unless real OAuth connection is demonstrated.
+
 ```env
 FACEBOOK_CLIENT_ID=
 FACEBOOK_CLIENT_SECRET=
 FACEBOOK_REDIRECT_URI=
 FACEBOOK_GRAPH_VERSION=v22.0
-MARKETPLACE_FACEBOOK_SOCIAL_ACCOUNT_ID=
-```
-
-TikTok scaffolding:
-
-```env
-TIKTOK_CLIENT_KEY=
-TIKTOK_CLIENT_ID=
-TIKTOK_CLIENT_SECRET=
-TIKTOK_REDIRECT_URI=
 ```
 
 Rate limits:
@@ -153,9 +144,6 @@ REPORT_RATE_LIMIT=5
 - `/login`
 - `/register`
 - `/products/{id}`
-- `/cart`
-- `/checkout`
-- `/orders`
 - `/wishlist`
 - `/compare`
 - `/profile`
@@ -176,7 +164,6 @@ REPORT_RATE_LIMIT=5
 - `/admin/users`
 - `/admin/stores`
 - `/admin/products`
-- `/admin/orders`
 - `/admin/categories`
 - `/admin/brands`
 - `/admin/banners`
@@ -212,10 +199,6 @@ Marketplace authenticated areas:
 - Profile: `/me`, `/me/avatar`, `/me/cover`
 - Stores: `/stores`, `/stores/{store}`, `/stores/{store}/follow`
 - Products: `/products`, `/products/{product}`, `/products/{product}/images`
-- Cart: `/cart`, `/cart/items`
-- Checkout: `/checkout`
-- Orders: `/orders`, `/orders/{order}`, `/orders/{order}/cancel`
-- Addresses: `/addresses`
 - Wishlist: `/wishlist`
 - Reviews: `/products/{product}/reviews`, `/reviews/{review}`
 - Reports: `/products/{product}/report`, `/product-reports/reasons`
@@ -226,14 +209,13 @@ Marketplace authenticated areas:
 
 ## Social Posting Scope
 
-Facebook is the supported social auto-post target for the current version.
+Facebook is the supported social auto-post target for the current version. Posting is simulated by default for the classroom scope: the backend creates social post records and marks due posts as posted without requiring live Facebook API credentials.
 
 Current product form behavior:
 
 - `auto_post=facebook` is accepted
-- unsupported values such as `tiktok` or `all` are rejected
+- unsupported values such as `instagram` or `all` are rejected
 - create flow blocks Facebook auto-post unless a product image is attached
-- TikTok is shown as unavailable/future in the UI
 
 ## Visual Search Removal
 
@@ -262,9 +244,8 @@ Before production:
 - Configure real mail provider
 - Configure production storage for uploaded images
 - Configure queue worker supervisor
-- Configure real Facebook OAuth/app credentials
-- Review TikTok scaffolding before enabling TikTok as a supported platform
-- Replace placeholder/manual payment handling only if business scope changes to online payments
+- Configure real Facebook OAuth/app credentials only if business scope changes from simulated posting
+- Add cart/checkout/payment/delivery only if business scope changes
 - Run tests and frontend build in CI
 - Serve with a real web server instead of `php artisan serve`
 

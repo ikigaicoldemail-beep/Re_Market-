@@ -17,7 +17,7 @@
 
     <div x-show="loading" class="text-center py-20 text-gray-500">Loading...</div>
 
-    <div x-show="!loading" class="grid md:grid-cols-2 gap-4 mb-8" style="display:none">
+    <div x-show="!loading" class="max-w-md mb-8" style="display:none">
         {{-- Facebook card --}}
         <div class="bg-white rounded-xl border border-gray-200 p-6">
             <div class="flex items-center gap-3 mb-3">
@@ -47,22 +47,6 @@
             </button>
         </div>
 
-        {{-- TikTok card (disabled — TikTok review requires a demo video first) --}}
-        <div class="bg-white rounded-xl border border-gray-200 p-6 opacity-60 relative">
-            <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-bold">T</div>
-                <div>
-                    <h2 class="font-semibold text-gray-900">TikTok</h2>
-                    <p class="text-xs text-gray-500">Coming soon</p>
-                </div>
-            </div>
-            <p class="text-xs text-gray-500 mb-3">
-                TikTok is not available for auto-posting in this version. Use Facebook for product posts.
-            </p>
-            <button disabled class="w-full bg-gray-300 text-white py-2 rounded-lg text-sm font-medium cursor-not-allowed">
-                Unavailable
-            </button>
-        </div>
     </div>
 
     {{-- Manual connect modal (fallback) --}}
@@ -128,7 +112,6 @@
                 return c.length === 0 ? 'Not connected' : c.length + ' account(s) connected';
             },
             ttStatus() {
-                const c = this.connectedFor('tiktok');
                 return c.length === 0 ? 'Not connected' : c.length + ' account(s) connected';
             },
             async fetch() {

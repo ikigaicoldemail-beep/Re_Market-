@@ -10,56 +10,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex flex-col">
-    <header class="bg-white sticky top-0 z-40">
-        {{-- TOP UTILITY BAR --}}
-        <div class="border-b border-gray-100 text-xs text-gray-500 hidden md:block">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="grid grid-cols-3 items-center h-10">
-                    {{-- Left links --}}
-                    <div class="flex items-center divide-x divide-gray-200">
-                        <a href="#" class="pr-3 hover:text-indigo-700" data-i18n="nav.about_us">About Us</a>
-                        <a href="{{ route('profile') }}" class="px-3 hover:text-indigo-700" data-i18n="nav.my_account">My Account</a>
-                        <a href="{{ route('wishlist') }}" class="px-3 hover:text-indigo-700" data-i18n="nav.wishlist">Wishlist</a>
-                        <a href="{{ route('messages.index') }}" class="pl-3 hover:text-indigo-700" data-i18n="nav.messages">Messages</a>
-                    </div>
-                    {{-- Center tag --}}
-                    <div class="text-center font-semibold text-indigo-700" data-i18n="nav.secure_delivery">
-                        100% Secure delivery without contacting the courier
-                    </div>
-                    {{-- Right: contact + language --}}
-                    <div class="flex items-center justify-end gap-3">
-                        <span class="hidden lg:flex items-center gap-1">
-                            <span class="text-gray-500" data-i18n="nav.need_help">Need help? Call Us:</span>
-                            <a href="tel:+18009001122" class="text-indigo-700 font-medium">+1 800 900 1122</a>
-                        </span>
-                        {{-- Language switcher --}}
-                        <div class="relative" x-data="{ open: false, locale: (window.currentLocale && window.currentLocale()) || 'en' }"
-                             x-init="window.addEventListener('i18n:changed', e => locale = e.detail.locale)">
-                            <button @click="open = !open" class="flex items-center gap-1 hover:text-indigo-700">
-                                <span x-text="locale === 'km' ? 'ខ្មែរ' : 'English'"></span>
-                                <x-heroicon-m-chevron-down class="w-3 h-3"/>
-                            </button>
-                            <div x-show="open" @click.outside="open = false" x-transition
-                                 class="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50" style="display:none">
-                                <button @click="window.setLocale('en'); open = false"
-                                    :class="locale === 'en' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
-                                    class="w-full text-left px-3 py-2 text-sm flex items-center gap-2">🇺🇸 English</button>
-                                <button @click="window.setLocale('km'); open = false"
-                                    :class="locale === 'km' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
-                                    class="w-full text-left px-3 py-2 text-sm flex items-center gap-2">🇰🇭 ខ្មែរ</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <header class="bg-white sticky top-0 z-40 shadow-sm shadow-gray-100/80">
         {{-- MAIN ROW: logo + search + icons --}}
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center gap-6 h-20">
+            <div class="flex items-center gap-6 h-16">
                 {{-- Logo --}}
-                <a href="{{ route('home') }}" class="shrink-0 text-2xl font-bold tracking-tight">
-                    <span class="text-indigo-700">Re</span><span class="text-gray-900">Market</span>
+                <a href="{{ route('home') }}" class="shrink-0 flex items-center" aria-label="Second Market home">
+                    <img src="{{ asset('images/logo_secondMarket_nav.png') }}" alt="Second Market" class="h-10 sm:h-11 w-auto object-contain">
                 </a>
 
                 {{-- Search --}}
@@ -78,6 +35,33 @@
 
                 {{-- Right action cluster --}}
                 <div class="flex items-center gap-4 ml-auto" x-data>
+                    {{-- Language switcher --}}
+                    <div class="relative" x-data="{ open: false, locale: (window.currentLocale && window.currentLocale()) || 'en' }"
+                         x-init="window.addEventListener('i18n:changed', e => locale = e.detail.locale)">
+                        <button type="button" @click="open = !open"
+                            class="h-9 px-2.5 rounded-full border border-gray-200 bg-white text-gray-700 hover:border-indigo-200 hover:text-indigo-700 hover:bg-indigo-50/60 flex items-center gap-1.5 text-xs font-semibold transition"
+                            :aria-label="locale === 'km' ? 'Switch language, Khmer selected' : 'Switch language, English selected'">
+                            <x-heroicon-o-language class="w-4 h-4"/>
+                            <span x-text="locale === 'km' ? 'KM' : 'EN'"></span>
+                            <x-heroicon-m-chevron-down class="w-3.5 h-3.5"/>
+                        </button>
+                        <div x-show="open" @click.outside="open = false" x-transition
+                             class="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50" style="display:none">
+                            <button type="button" @click="window.setLocale('en'); open = false"
+                                :class="locale === 'en' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                                class="w-full text-left px-3 py-2 text-sm flex items-center justify-between">
+                                <span>English</span>
+                                <span class="text-xs font-semibold">EN</span>
+                            </button>
+                            <button type="button" @click="window.setLocale('km'); open = false"
+                                :class="locale === 'km' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'"
+                                class="w-full text-left px-3 py-2 text-sm flex items-center justify-between">
+                                <span>Khmer</span>
+                                <span class="text-xs font-semibold">KM</span>
+                            </button>
+                        </div>
+                    </div>
+
                     {{-- Compare --}}
                     <a href="{{ route('compare') }}" class="hidden sm:flex relative items-center gap-2 text-gray-700 hover:text-indigo-700">
                         <span class="relative">
@@ -163,16 +147,6 @@
                         </div>
                     </template>
                 </div>
-            </div>
-        </div>
-
-        {{-- SUB-NAV: Shops + Categories --}}
-        <div class="border-t border-gray-100 bg-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <nav class="flex items-center gap-6 h-10 text-sm">
-                    <a href="{{ route('stores.index') }}" class="font-medium text-gray-700 hover:text-indigo-700 transition" data-i18n="nav.shops">Shops</a>
-                    <a href="{{ route('home') }}#categories" class="text-gray-500 hover:text-indigo-700 transition" data-i18n="home.categories">Categories</a>
-                </nav>
             </div>
         </div>
 

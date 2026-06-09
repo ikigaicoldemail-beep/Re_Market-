@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use App\Integrations\Social\FacebookSocialClient;
-use App\Integrations\Social\TikTokSocialClient;
 use App\Models\Store;
 use App\Services\SocialPlatformManager;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -21,8 +20,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(FacebookSocialClient::class);
-        $this->app->singleton(TikTokSocialClient::class);
-        $this->app->tag([FacebookSocialClient::class, TikTokSocialClient::class], 'social.platform.clients');
+        $this->app->tag([FacebookSocialClient::class], 'social.platform.clients');
         $this->app->singleton(SocialPlatformManager::class, function ($app) {
             return new SocialPlatformManager($app->tagged('social.platform.clients'));
         });

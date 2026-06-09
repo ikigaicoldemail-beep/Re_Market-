@@ -6,10 +6,10 @@
 @section('content')
 <div x-data="adminHome()" x-init="init">
     <div>
-        <p class="text-sm text-gray-500">Manage marketplace users, stores, products, orders, categories, and reports.</p>
+        <p class="text-sm text-gray-500">Manage marketplace users, stores, products, categories, brands, banners, and reports.</p>
 
         {{-- Stat cards (cached 60s server-side) --}}
-        <div x-show="stats" class="grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mt-6" style="display:none">
+        <div x-show="stats" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6" style="display:none">
             <div class="bg-white rounded-xl border border-gray-200 p-4">
                 <p class="text-xs uppercase tracking-wide text-gray-500">Users</p>
                 <p class="text-2xl font-semibold text-gray-900 mt-1" x-text="stats?.users?.total ?? '—'"></p>
@@ -25,17 +25,6 @@
                 <p class="text-2xl font-semibold text-gray-900 mt-1" x-text="stats?.products?.total ?? '—'"></p>
                 <p class="text-xs text-gray-500 mt-1"><span x-text="stats?.products?.published ?? 0"></span> published</p>
             </div>
-            <div class="bg-white rounded-xl border border-gray-200 p-4">
-                <p class="text-xs uppercase tracking-wide text-gray-500">Orders</p>
-                <p class="text-2xl font-semibold text-gray-900 mt-1" x-text="stats?.orders?.total ?? '—'"></p>
-                <p class="text-xs text-gray-500 mt-1"><span x-text="stats?.orders?.paid ?? 0"></span> paid</p>
-            </div>
-            <div class="bg-white rounded-xl border border-gray-200 p-4">
-                <p class="text-xs uppercase tracking-wide text-gray-500">Revenue</p>
-                <p class="text-2xl font-semibold text-gray-900 mt-1"
-                   x-text="formatPrice(stats?.revenue?.paid_total_minor ?? 0, stats?.revenue?.currency ?? 'USD')"></p>
-                <p class="text-xs text-gray-500 mt-1">paid orders</p>
-            </div>
             <div class="bg-white rounded-xl border border-gray-200 p-4"
                  :class="(stats?.reports?.open ?? 0) > 0 ? 'border-red-200 bg-red-50' : ''">
                 <p class="text-xs uppercase tracking-wide text-gray-500">Open reports</p>
@@ -46,7 +35,7 @@
             </div>
         </div>
 
-        <div class="grid sm:grid-cols-2 lg:grid-cols-6 gap-4 mt-8">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
             <a href="/admin/users" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition">
                 <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mb-3">
                     <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -67,13 +56,6 @@
                 </div>
                 <p class="font-semibold text-gray-900">Products</p>
                 <p class="text-xs text-gray-500 mt-1">Review and moderate listings</p>
-            </a>
-            <a href="/admin/orders" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition">
-                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                </div>
-                <p class="font-semibold text-gray-900">Orders</p>
-                <p class="text-xs text-gray-500 mt-1">Track and update fulfillment</p>
             </a>
             <a href="/admin/categories" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition">
                 <div class="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center mb-3">

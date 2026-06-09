@@ -2,9 +2,8 @@
 
 namespace Tests\Feature\Api\V1;
 
-use App\Models\Conversation;
-use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductReview;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,7 +14,7 @@ class ReviewEligibilityApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_chat_about_product_does_not_make_buyer_review_eligible_without_paid_order(): void
+    public function test_signed_in_user_can_review_product_without_checkout_dependency(): void
     {
         $seller = User::factory()->create(['role' => 'seller']);
         $buyer = User::factory()->create();
@@ -24,15 +23,6 @@ class ReviewEligibilityApiTest extends TestCase
             'user_id' => $seller->id,
             'status' => 'published',
             'visibility' => 'public',
-        ]);
-        $conversation = Conversation::create([
-            'product_id' => $product->id,
-            'created_by' => $buyer->id,
-            'type' => 'private',
-        ]);
-        $conversation->participants()->createMany([
-            ['user_id' => $buyer->id, 'joined_at' => now()],
-            ['user_id' => $seller->id, 'joined_at' => now()],
         ]);
 
         $token = Auth::guard('api')->login($buyer);
@@ -41,11 +31,30 @@ class ReviewEligibilityApiTest extends TestCase
             ->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/products/'.$product->id.'/review-eligibility')
             ->assertOk()
-            ->assertJsonPath('eligible', false)
-            ->assertJsonPath('reason', 'Only buyers who have purchased this product can leave a review.');
+            ->assertJsonPath('eligible', true)
+            ->assertJsonPath('reason', '');
     }
 
-    public function test_paid_order_makes_buyer_review_eligible(): void
+    public function test_seller_cannot_review_own_product(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $store = Store::factory()->for($seller)->create();
+        $product = Product::factory()->forStore($store)->create([
+            'user_id' => $seller->id,
+            'status' => 'published',
+            'visibility' => 'public',
+        ]);
+
+        $token = Auth::guard('api')->login($seller);
+
+        $this
+            ->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/products/'.$product->id.'/review-eligibility')
+            ->assertOk()
+            ->assertJsonPath('eligible', false);
+    }
+
+    public function test_existing_review_keeps_user_eligible_to_edit(): void
     {
         $seller = User::factory()->create(['role' => 'seller']);
         $buyer = User::factory()->create();
@@ -55,29 +64,12 @@ class ReviewEligibilityApiTest extends TestCase
             'status' => 'published',
             'visibility' => 'public',
         ]);
-        $order = Order::create([
-            'order_number' => 'ORD-TEST-PAID',
-            'buyer_id' => $buyer->id,
-            'store_id' => $store->id,
-            'status' => 'completed',
-            'payment_status' => 'paid',
-            'currency' => 'USD',
-            'subtotal_amount' => 10000,
-            'discount_amount' => 0,
-            'shipping_amount' => 0,
-            'total_amount' => 10000,
-            'placed_at' => now(),
-            'paid_at' => now(),
-        ]);
-        $order->items()->create([
+
+        ProductReview::create([
             'product_id' => $product->id,
-            'seller_id' => $seller->id,
-            'product_title' => $product->title,
-            'product_slug' => $product->slug,
-            'quantity' => 1,
-            'unit_price_amount' => 10000,
-            'line_total_amount' => 10000,
-            'fulfillment_status' => 'completed',
+            'user_id' => $buyer->id,
+            'rating' => 5,
+            'status' => 'published',
         ]);
 
         $token = Auth::guard('api')->login($buyer);

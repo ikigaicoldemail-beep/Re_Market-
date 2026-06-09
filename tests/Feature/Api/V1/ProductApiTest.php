@@ -152,7 +152,7 @@ class ProductApiTest extends TestCase
                 'description' => 'Only Facebook auto-post is supported in this version.',
                 'price_amount' => 45000,
                 'currency' => 'USD',
-                'auto_post' => 'tiktok',
+                'auto_post' => 'instagram',
             ]);
 
         $response

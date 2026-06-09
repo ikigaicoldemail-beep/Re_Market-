@@ -13,7 +13,6 @@ class ProductReviewResource extends JsonResource
             'id' => $this->id,
             'product_id' => $this->product_id,
             'user_id' => $this->user_id,
-            'order_id' => $this->order_id,
             'rating' => $this->rating,
             'title' => $this->title,
             'body' => $this->body,

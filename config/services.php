@@ -43,11 +43,4 @@ return [
         'marketplace_social_account_id' => env('MARKETPLACE_FACEBOOK_SOCIAL_ACCOUNT_ID'),
     ],
 
-    'tiktok' => [
-        'client_key' => env('TIKTOK_CLIENT_KEY', env('TIKTOK_CLIENT_ID')),
-        'client_id' => env('TIKTOK_CLIENT_ID'),
-        'client_secret' => env('TIKTOK_CLIENT_SECRET'),
-        'redirect' => env('TIKTOK_REDIRECT_URI'),
-    ],
-
 ];

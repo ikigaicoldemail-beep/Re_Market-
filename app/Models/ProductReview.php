@@ -15,7 +15,6 @@ class ProductReview extends Model
     protected $fillable = [
         'product_id',
         'user_id',
-        'order_id',
         'rating',
         'title',
         'body',
@@ -42,8 +41,4 @@ class ProductReview extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function order(): BelongsTo
-    {
-        return $this->belongsTo(Order::class);
-    }
 }

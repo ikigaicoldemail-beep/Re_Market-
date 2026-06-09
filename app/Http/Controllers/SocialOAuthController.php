@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SocialOAuthController extends Controller
 {
-    private const SUPPORTED_PROVIDERS = ['facebook', 'tiktok'];
+    private const SUPPORTED_PROVIDERS = ['facebook'];
 
     public function __construct(private readonly SocialAccountService $socialAccountService) {}
 
@@ -57,10 +57,7 @@ class SocialOAuthController extends Controller
         $stash = Cache::get('oauth_state:'.$state);
         abort_unless($stash && ($stash['provider'] ?? null) === $provider, 403, 'OAuth state expired.');
 
-        $url = match ($provider) {
-            'facebook' => $this->buildFacebookAuthorizeUrl($state),
-            'tiktok' => $this->buildTikTokAuthorizeUrl($state),
-        };
+        $url = $this->buildFacebookAuthorizeUrl($state);
 
         return redirect()->away($url);
     }
@@ -88,10 +85,7 @@ class SocialOAuthController extends Controller
         }
 
         try {
-            $payloads = match ($provider) {
-                'facebook' => $this->handleFacebookCallback($code),
-                'tiktok' => [$this->handleTikTokCallback($code)],
-            };
+            $payloads = $this->handleFacebookCallback($code);
 
             $user = \App\Models\User::findOrFail($stash['user_id']);
             foreach ($payloads as $payload) {
@@ -134,17 +128,6 @@ class SocialOAuthController extends Controller
             'state' => $state,
             'scope' => 'public_profile,email,pages_manage_posts,pages_read_engagement',
             'response_type' => 'code',
-        ]);
-    }
-
-    private function buildTikTokAuthorizeUrl(string $state): string
-    {
-        return 'https://www.tiktok.com/v2/auth/authorize/?'.http_build_query([
-            'client_key' => config('services.tiktok.client_id'),
-            'response_type' => 'code',
-            'scope' => 'user.info.basic',
-            'redirect_uri' => $this->callbackUrl('tiktok'),
-            'state' => $state,
         ]);
     }
 
@@ -245,38 +228,6 @@ class SocialOAuthController extends Controller
             'token_expires_at' => $expiresAt,
             'scopes' => ['public_profile', 'email'],
         ]];
-    }
-
-    private function handleTikTokCallback(string $code): array
-    {
-        $tokenResp = $this->http()->asForm()->post('https://open.tiktokapis.com/v2/oauth/token/', [
-            'client_key' => config('services.tiktok.client_id'),
-            'client_secret' => config('services.tiktok.client_secret'),
-            'code' => $code,
-            'grant_type' => 'authorization_code',
-            'redirect_uri' => $this->callbackUrl('tiktok'),
-        ])->throw()->json();
-
-        $accessToken = $tokenResp['access_token'] ?? null;
-        $openId = $tokenResp['open_id'] ?? null;
-        if (! $accessToken || ! $openId) {
-            throw new \RuntimeException('TikTok did not return an access token.');
-        }
-
-        $profile = $this->http()->withToken($accessToken)
-            ->get('https://open.tiktokapis.com/v2/user/info/', ['fields' => 'open_id,display_name'])
-            ->json('data.user', []);
-
-        return [
-            'provider_user_id' => (string) $openId,
-            'provider_account_name' => $profile['display_name'] ?? null,
-            'access_token' => $accessToken,
-            'refresh_token' => $tokenResp['refresh_token'] ?? null,
-            'token_expires_at' => isset($tokenResp['expires_in'])
-                ? now()->addSeconds((int) $tokenResp['expires_in'])->toIso8601String()
-                : null,
-            'scopes' => explode(',', (string) ($tokenResp['scope'] ?? 'user.info.basic')),
-        ];
     }
 
     private function renderClosePopup(bool $success, ?string $message = null): Response

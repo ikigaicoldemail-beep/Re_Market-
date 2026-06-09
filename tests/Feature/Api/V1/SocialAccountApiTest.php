@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class SocialAccountApiTest extends TestCase
@@ -20,7 +21,7 @@ class SocialAccountApiTest extends TestCase
         $response = $this
             ->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/social/accounts', [
-                'platform' => 'tiktok',
+                'platform' => 'facebook',
                 'provider_user_id' => 'provider-user-123',
                 'provider_account_name' => 'Demo Account',
                 'access_token' => str_repeat('a', 4097),
@@ -37,10 +38,21 @@ class SocialAccountApiTest extends TestCase
         $user = User::factory()->create();
         $token = Auth::guard('api')->login($user);
 
+        Http::fake([
+            'graph.facebook.com/*/debug_token*' => Http::response([
+                'data' => [
+                    'is_valid' => true,
+                    'type' => 'PAGE',
+                    'profile_id' => 'provider-user-123',
+                    'scopes' => ['pages_manage_posts'],
+                ],
+            ]),
+        ]);
+
         $this
             ->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/social/accounts', [
-                'platform' => 'tiktok',
+                'platform' => 'facebook',
                 'provider_user_id' => 'provider-user-123',
                 'provider_account_name' => 'Demo Account',
                 'access_token' => 'plain-access-token',

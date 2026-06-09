@@ -11,12 +11,12 @@
     <section class="space-y-6 text-gray-700 text-sm leading-relaxed">
         <div>
             <h2 class="text-lg font-semibold text-gray-900 mb-2">1. Information we collect</h2>
-            <p>ReMarket collects the information you provide when you create an account (name, email, phone), list a product (titles, descriptions, images, location), or connect a social account (Facebook/TikTok profile id and access token).</p>
+            <p>ReMarket collects the information you provide when you create an account (name, email, phone), list a product (titles, descriptions, images, location), or connect a social account (Facebook profile id and access token).</p>
         </div>
 
         <div>
             <h2 class="text-lg font-semibold text-gray-900 mb-2">2. How we use it</h2>
-            <p>We use this information to operate the marketplace (matching buyers and sellers, processing orders, sending notifications) and to post on your behalf to social platforms when you opt in.</p>
+            <p>We use this information to operate the marketplace (matching buyers and sellers, managing product listings, sending notifications) and to post on your behalf to social platforms when you opt in.</p>
         </div>
 
         <div>

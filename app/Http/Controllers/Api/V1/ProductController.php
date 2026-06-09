@@ -12,7 +12,6 @@ use App\Http\Requests\Social\ScheduleProductPostRequest;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\ScheduledPostResource;
 use App\Http\Resources\StoreResource;
-use App\Models\Order;
 use App\Models\Product;
 use App\Models\Store;
 use App\Services\ProductService;
@@ -169,15 +168,9 @@ class ProductController extends Controller
             return response()->json(['eligible' => true, 'reason' => '']);
         }
 
-        $hasPaidOrder = Order::query()
-            ->where('buyer_id', $user->id)
-            ->where('payment_status', 'paid')
-            ->whereHas('items', fn ($q) => $q->where('product_id', $product->id))
-            ->exists();
-
         return response()->json([
-            'eligible' => $hasPaidOrder,
-            'reason' => $hasPaidOrder ? '' : 'Only buyers who have purchased this product can leave a review.',
+            'eligible' => true,
+            'reason' => '',
         ]);
     }
 

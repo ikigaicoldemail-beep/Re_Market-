@@ -15,7 +15,7 @@ class ConnectSocialAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'platform' => ['required', Rule::in(['facebook', 'tiktok'])],
+            'platform' => ['required', Rule::in(['facebook'])],
             'provider_user_id' => ['required', 'string', 'max:255'],
             'provider_account_name' => ['nullable', 'string', 'max:255'],
             'access_token' => ['required', 'string', 'max:4096'],

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BrandResource;
 use App\Http\Resources\CategoryResource;
-use App\Http\Resources\OrderResource;
 use App\Http\Resources\ProductReportResource;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\PromoBannerResource;
@@ -13,7 +12,6 @@ use App\Http\Resources\StoreResource;
 use App\Http\Resources\UserResource;
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductReport;
 use App\Models\PromoBanner;
@@ -46,15 +44,6 @@ class AdminController extends Controller
                     'total' => Product::count(),
                     'published' => Product::where('status', 'published')->count(),
                     'pending_moderation' => Product::where('moderation_status', 'pending')->count(),
-                ],
-                'orders' => [
-                    'total' => Order::count(),
-                    'paid' => Order::where('payment_status', 'paid')->count(),
-                    'pending' => Order::where('status', 'pending')->count(),
-                ],
-                'revenue' => [
-                    'paid_total_minor' => (int) Order::where('payment_status', 'paid')->sum('total_amount'),
-                    'currency' => Order::where('payment_status', 'paid')->value('currency') ?? 'USD',
                 ],
                 'reports' => [
                     'open' => ProductReport::where('status', 'open')->count(),
@@ -264,61 +253,6 @@ class AdminController extends Controller
 
         return response()->json([
             'message' => 'Product deleted successfully.',
-        ]);
-    }
-
-    public function orders(Request $request): JsonResponse
-    {
-        $filters = $request->validate([
-            'buyer_id' => ['nullable', 'integer', 'exists:users,id'],
-            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
-            'status' => ['nullable', Rule::in(['pending', 'processing', 'completed', 'cancelled', 'refunded'])],
-            'payment_status' => ['nullable', Rule::in(['pending', 'paid', 'failed', 'refunded'])],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
-
-        $orders = Order::query()
-            ->with(['buyer.profile', 'address', 'store', 'items', 'payments'])
-            ->when($filters['buyer_id'] ?? null, fn ($query, $buyerId) => $query->where('buyer_id', $buyerId))
-            ->when($filters['store_id'] ?? null, fn ($query, $storeId) => $query->where('store_id', $storeId))
-            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
-            ->when($filters['payment_status'] ?? null, fn ($query, $status) => $query->where('payment_status', $status))
-            ->latest()
-            ->paginate($filters['per_page'] ?? 15)
-            ->withQueryString();
-
-        return response()->json([
-            'orders' => OrderResource::collection($orders),
-            'meta' => $this->paginationMeta($orders),
-        ]);
-    }
-
-    public function updateOrder(Request $request, Order $order): JsonResponse
-    {
-        $data = $request->validate([
-            'status' => ['sometimes', Rule::in(['pending', 'processing', 'completed', 'cancelled', 'refunded'])],
-            'payment_status' => ['sometimes', Rule::in(['pending', 'paid', 'failed', 'refunded'])],
-        ]);
-
-        $order->fill($data);
-
-        if (($data['payment_status'] ?? null) === 'paid' && ! $order->paid_at) {
-            $order->paid_at = now();
-        }
-
-        if (($data['status'] ?? null) === 'cancelled' && ! $order->cancelled_at) {
-            $order->cancelled_at = now();
-        }
-
-        if (($data['status'] ?? null) === 'completed' && ! $order->completed_at) {
-            $order->completed_at = now();
-        }
-
-        $order->save();
-
-        return response()->json([
-            'message' => 'Order updated successfully.',
-            'order' => new OrderResource($order->fresh(['buyer.profile', 'address', 'store', 'items', 'payments'])),
         ]);
     }
 

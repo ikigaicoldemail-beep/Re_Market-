@@ -16,15 +16,8 @@ Route::get('/products/{id}', function ($id) {
     return view('pages.products.show', ['id' => (int) $id, 'ogProduct' => $product]);
 })->where('id', '[0-9]+')->name('products.show');
 
-Route::view('/cart', 'pages.cart')->name('cart');
-Route::view('/checkout', 'pages.checkout')->name('checkout');
-Route::view('/orders', 'pages.orders.index')->name('orders.index');
-Route::view('/orders/{id}', 'pages.orders.show')
-    ->where('id', '[0-9]+')
-    ->name('orders.show');
 Route::view('/wishlist', 'pages.wishlist')->name('wishlist');
 Route::view('/compare', 'pages.compare')->name('compare');
-Route::view('/addresses', 'pages.addresses')->name('addresses');
 Route::view('/profile', 'pages.profile')->name('profile');
 
 // Seller area
@@ -57,10 +50,10 @@ Route::view('/messages/{id}', 'pages.messages.show')
 
 // Social OAuth (browser-side flow)
 Route::get('/oauth/{provider}/start', [SocialOAuthController::class, 'start'])
-    ->where('provider', 'facebook|tiktok')
+    ->where('provider', 'facebook')
     ->name('oauth.start');
 Route::get('/oauth/{provider}/callback', [SocialOAuthController::class, 'callback'])
-    ->where('provider', 'facebook|tiktok')
+    ->where('provider', 'facebook')
     ->name('oauth.callback');
 
 // Admin — client-side guard (admin-guard component) redirects to /login if
@@ -69,7 +62,6 @@ Route::view('/admin', 'pages.admin.index')->name('admin.index');
 Route::view('/admin/users', 'pages.admin.users')->name('admin.users');
 Route::view('/admin/stores', 'pages.admin.stores')->name('admin.stores');
 Route::view('/admin/products', 'pages.admin.products')->name('admin.products');
-Route::view('/admin/orders', 'pages.admin.orders')->name('admin.orders');
 Route::view('/admin/categories', 'pages.admin.categories')->name('admin.categories');
 Route::view('/admin/brands', 'pages.admin.brands')->name('admin.brands');
 Route::view('/admin/banners', 'pages.admin.banners')->name('admin.banners');

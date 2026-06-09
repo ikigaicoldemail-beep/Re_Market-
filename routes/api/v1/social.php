@@ -12,7 +12,7 @@ Route::middleware('throttle:social')->group(function () {
     Route::get('/social/accounts', [SocialAccountController::class, 'index']);
     Route::post('/social/accounts', [SocialAccountController::class, 'store'])->middleware('email.verified.marketplace');
     Route::post('/social/{provider}/authorize', [SocialOAuthController::class, 'buildAuthorizeUrl'])
-        ->where('provider', 'facebook|tiktok');
+        ->where('provider', 'facebook');
     Route::delete('/social/accounts/{socialAccount}', [SocialAccountController::class, 'destroy'])->middleware('email.verified.marketplace');
 
     Route::get('/social/posts', [SocialPostController::class, 'index']);

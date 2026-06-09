@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Address;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductCondition;
@@ -52,11 +51,6 @@ class DemoMarketplaceSeeder extends Seeder
                 'profile_visibility' => 'public',
             ]
         );
-
-        Address::factory()->for($buyer)->create([
-            'recipient_name' => $buyer->name,
-            'is_default' => true,
-        ]);
 
         $category = Category::query()->first() ?? Category::factory()->create();
         $condition = ProductCondition::query()->first() ?? ProductCondition::factory()->create();

@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('order_id')->nullable()->constrained('orders')->nullOnDelete();
             $table->unsignedTinyInteger('rating');
             $table->string('title')->nullable();
             $table->text('body')->nullable();
