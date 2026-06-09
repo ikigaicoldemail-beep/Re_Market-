@@ -15,8 +15,8 @@ class AuthApiTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
             'phone' => '1234567890',
-            'password' => 'Password123',
-            'password_confirmation' => 'Password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
         ]);
 
         $response
@@ -40,8 +40,8 @@ class AuthApiTest extends TestCase
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'phone' => '1234567891',
-            'password' => 'Password123',
-            'password_confirmation' => 'Password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'role' => 'admin',
         ]);
 
@@ -61,8 +61,8 @@ class AuthApiTest extends TestCase
         $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'Admin User',
             'email' => 'admin@example.com',
-            'password' => 'Password123',
-            'password_confirmation' => 'Password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'role' => 'admin',
             'admin_key' => 'secret-admin-key',
         ]);
@@ -75,5 +75,31 @@ class AuthApiTest extends TestCase
             'email' => 'admin@example.com',
             'role' => 'admin',
         ]);
+    }
+
+    public function test_registration_requires_a_symbol_in_password(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('password');
+    }
+
+    public function test_login_rejects_overly_long_credentials(): void
+    {
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => str_repeat('a', 256).'@example.com',
+            'password' => str_repeat('x', 256),
+        ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['email', 'password']);
     }
 }

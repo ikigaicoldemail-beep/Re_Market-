@@ -35,14 +35,6 @@ return [
         ],
     ],
 
-    'ai_similarity' => [
-        // Auto-switch to HuggingFace when an API key is present; override with AI_SIMILARITY_PROVIDER.
-        'provider' => env('AI_SIMILARITY_PROVIDER', env('AI_SIMILARITY_API_KEY') ? 'huggingface-clip' : 'fake-image-embedding'),
-        'model' => env('AI_SIMILARITY_MODEL', 'facebook/data2vec-vision-base'),
-        'api_key' => env('AI_SIMILARITY_API_KEY'),
-        'endpoint' => env('AI_SIMILARITY_ENDPOINT'),
-    ],
-
     'facebook' => [
         'client_id' => env('FACEBOOK_CLIENT_ID'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
@@ -52,6 +44,7 @@ return [
     ],
 
     'tiktok' => [
+        'client_key' => env('TIKTOK_CLIENT_KEY', env('TIKTOK_CLIENT_ID')),
         'client_id' => env('TIKTOK_CLIENT_ID'),
         'client_secret' => env('TIKTOK_CLIENT_SECRET'),
         'redirect' => env('TIKTOK_REDIRECT_URI'),

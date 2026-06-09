@@ -55,9 +55,6 @@ Route::view('/messages/{id}', 'pages.messages.show')
     ->where('id', '[0-9]+')
     ->name('messages.show');
 
-// Visual search
-Route::view('/search/visual', 'pages.search.visual')->name('search.visual');
-
 // Social OAuth (browser-side flow)
 Route::get('/oauth/{provider}/start', [SocialOAuthController::class, 'start'])
     ->where('provider', 'facebook|tiktok')

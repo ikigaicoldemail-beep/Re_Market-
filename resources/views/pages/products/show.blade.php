@@ -198,13 +198,6 @@
                     </button>
                 </div>
 
-                {{-- Find visually similar (promoted to button) --}}
-                <button @click="findSimilar()"
-                    class="w-full border border-indigo-300 text-indigo-600 py-2.5 rounded-lg font-medium hover:bg-indigo-50 transition inline-flex items-center justify-center gap-2">
-                    <x-heroicon-o-camera class="w-4 h-4"/>
-                    <span data-i18n="product.find_similar">Find visually similar</span>
-                </button>
-
                 {{-- Compare (demoted to text link) --}}
                 <div class="text-center">
                     <button @click="$store.compare.toggle(product.id)"
@@ -376,35 +369,6 @@
         </div>
     </div>
 
-    {{-- Similar products modal --}}
-    <div x-show="showSimilar" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" @click.self="showSimilar = false" style="display:none">
-        <div class="bg-white rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200">
-                <h2 class="text-lg font-semibold">Visually similar products</h2>
-                <button @click="showSimilar = false" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
-            </div>
-            <div class="overflow-y-auto p-4">
-                <div x-show="similarLoading" class="text-center py-10 text-gray-500">Searching...</div>
-                <div x-show="!similarLoading && similarProducts.length === 0" class="text-center py-10 text-gray-500" style="display:none">
-                    No similar products found.
-                </div>
-                <div x-show="!similarLoading && similarProducts.length > 0" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4" style="display:none">
-                    <template x-for="p in similarProducts" :key="p.id">
-                        <a :href="'/products/' + p.id" class="block group">
-                            <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                                <img :src="similarPrimaryImage(p)"
-                                    onerror="this.src='https://placehold.co/300x300/e5e7eb/9ca3af?text=No+Image'"
-                                    class="w-full h-full object-cover group-hover:scale-105 transition">
-                            </div>
-                            <p class="text-sm font-medium text-gray-900 mt-2 line-clamp-2" x-text="p.title"></p>
-                            <p class="text-sm font-bold text-indigo-600" x-text="formatPrice(p.price_amount, p.currency)"></p>
-                        </a>
-                    </template>
-                </div>
-            </div>
-        </div>
-    </div>
-
     {{-- Report modal --}}
     <div x-show="showReport" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
          @click.self="showReport = false" style="display:none">
@@ -480,9 +444,6 @@
             sharingPlatform: false,
             shareUrl: '',
             messagingSeller: false,
-            showSimilar: false,
-            similarLoading: false,
-            similarProducts: [],
             showReport: false,
             reportReasons: [],
             reportForm: { reason: '', details: '' },
@@ -628,31 +589,6 @@
             },
             setActive(img) {
                 this.activeImage = this.heroSrc(img);
-            },
-            similarPrimaryImage(p) {
-                if (p.images && p.images.length > 0) {
-                    const primary = p.images.find(i => i.is_primary) || p.images[0];
-                    return primary.urls?.card_webp || primary.urls?.card || primary.url;
-                }
-                return 'https://placehold.co/300x300/e5e7eb/9ca3af?text=No+Image';
-            },
-            async findSimilar() {
-                if (!this.product) return;
-                this.showSimilar = true;
-                if (this.similarProducts.length > 0) return;
-                this.similarLoading = true;
-                try {
-                    const { data } = await window.api.post('/ai/similarity-search', {
-                        product_id: this.product.id,
-                        top_k: 20,
-                    });
-                    this.similarProducts = (data.products || []).filter(p => p.id !== this.product.id);
-                } catch (e) {
-                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
-                    this.showSimilar = false;
-                } finally {
-                    this.similarLoading = false;
-                }
             },
             async fetchReviews() {
                 try {

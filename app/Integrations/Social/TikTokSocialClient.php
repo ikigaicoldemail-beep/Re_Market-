@@ -165,8 +165,8 @@ class TikTokSocialClient implements SocialPlatformClientInterface
                 'https://open.tiktokapis.com/v1/oauth/token/refresh/',
                 [
                     'form_params' => [
-                        'client_key' => env('TIKTOK_CLIENT_KEY'),
-                        'client_secret' => env('TIKTOK_CLIENT_SECRET'),
+                        'client_key' => config('services.tiktok.client_key'),
+                        'client_secret' => config('services.tiktok.client_secret'),
                         'grant_type' => 'refresh_token',
                         'refresh_token' => $account->refresh_token,
                     ],
@@ -186,4 +186,3 @@ class TikTokSocialClient implements SocialPlatformClientInterface
         }
     }
 }
-

@@ -78,12 +78,6 @@
 
                 {{-- Right action cluster --}}
                 <div class="flex items-center gap-4 ml-auto" x-data>
-                    {{-- Visual Search --}}
-                    <a href="{{ route('search.visual') }}" class="hidden sm:flex items-center gap-2 text-gray-700 hover:text-indigo-700" title="Visual Search">
-                        <x-heroicon-o-camera class="w-6 h-6"/>
-                        <span class="text-sm hidden lg:inline" data-i18n="nav.visual_search">Visual Search</span>
-                    </a>
-
                     {{-- Compare --}}
                     <a href="{{ route('compare') }}" class="hidden sm:flex relative items-center gap-2 text-gray-700 hover:text-indigo-700">
                         <span class="relative">

@@ -2,9 +2,6 @@
 
 namespace App\Providers;
 
-use App\Contracts\AiImageEmbeddingClientInterface;
-use App\Integrations\Ai\FakeImageEmbeddingClient;
-use App\Integrations\Ai\HuggingFaceImageEmbeddingClient;
 use App\Integrations\Social\FacebookSocialClient;
 use App\Integrations\Social\TikTokSocialClient;
 use App\Models\Store;
@@ -23,15 +20,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(AiImageEmbeddingClientInterface::class, function () {
-            $provider = config('services.ai_similarity.provider', 'fake-image-embedding');
-
-            return match ($provider) {
-                'huggingface-clip', 'huggingface' => $this->app->make(HuggingFaceImageEmbeddingClient::class),
-                default => $this->app->make(FakeImageEmbeddingClient::class),
-            };
-        });
-
         $this->app->singleton(FacebookSocialClient::class);
         $this->app->singleton(TikTokSocialClient::class);
         $this->app->tag([FacebookSocialClient::class, TikTokSocialClient::class], 'social.platform.clients');
@@ -78,11 +66,6 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('social', function (Request $request) {
             return Limit::perMinute((int) env('SOCIAL_RATE_LIMIT', 30))
-                ->by($request->user()?->id ?: $request->ip());
-        });
-
-        RateLimiter::for('ai', function (Request $request) {
-            return Limit::perMinute((int) env('AI_RATE_LIMIT', 20))
                 ->by($request->user()?->id ?: $request->ip());
         });
 

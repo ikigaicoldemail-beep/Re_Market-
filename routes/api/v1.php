@@ -20,7 +20,6 @@ Route::middleware(['auth:api', 'account.active', 'activity.log'])->group(functio
     require __DIR__.'/v1/wishlist.php';
     require __DIR__.'/v1/commerce.php';
     require __DIR__.'/v1/products.php';
-    require __DIR__.'/v1/ai.php';
     require __DIR__.'/v1/social.php';
     require __DIR__.'/v1/chat.php';
 });

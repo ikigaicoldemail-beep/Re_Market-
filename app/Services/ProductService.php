@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Events\ProductCreated;
-use App\Jobs\GenerateProductImageEmbeddingJob;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Store;
@@ -340,15 +339,12 @@ class ProductService
                     'file_size' => $image->getSize(),
                     'sort_order' => $startingOrder + $index,
                     'is_primary' => ! $hasPrimary && $index === 0,
-                    'ai_embedding_status' => 'pending',
                 ]);
 
                 if ($productImage->is_primary) {
                     $product->image = $productImage->path;
                     $product->save();
                 }
-
-                GenerateProductImageEmbeddingJob::dispatch($productImage->id);
             }
         });
 
