@@ -15,15 +15,21 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY . .
 
+# Laravel required folders BEFORE composer install
+RUN mkdir -p storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    bootstrap/cache
+
+RUN chmod -R 777 storage bootstrap/cache
+
 # PHP deps
 RUN composer install --no-dev --optimize-autoloader
 
 # Node deps + Vite build
 RUN npm ci && npm run build
 
-RUN chmod -R 777 storage bootstrap/cache
-
 CMD php artisan config:cache && \
     php artisan route:cache && \
     php artisan migrate --force && \
-    php artisan serve --host=0.0.0.0 --port=$PORT
+    php artisan serve --host=0.0.0.0 --port=${PORT}
