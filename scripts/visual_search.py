@@ -7,19 +7,10 @@ from pathlib import Path
 
 import faiss
 import numpy as np
-import open_clip
-import torch
-from PIL import Image
+from PIL import Image, ImageFilter
 
 
-def load_model(model_name, pretrained, device):
-    model, _, preprocess = open_clip.create_model_and_transforms(
-        model_name,
-        pretrained=pretrained,
-        device=device,
-    )
-    model.eval()
-    return model, preprocess
+VECTOR_DIM = 280
 
 
 def read_manifest(path):
@@ -34,44 +25,62 @@ def read_manifest(path):
     return rows
 
 
-def embed_paths(paths, model, preprocess, device, batch_size):
+def image_vector(path):
+    image = Image.open(path).convert("RGB")
+
+    small = image.resize((16, 16), Image.Resampling.LANCZOS)
+    gray = small.convert("L")
+    gray_values = np.asarray(gray, dtype="float32").reshape(-1) / 255.0
+
+    hist_values = []
+    for channel in image.resize((96, 96), Image.Resampling.LANCZOS).split():
+        hist = np.asarray(channel.histogram(), dtype="float32").reshape(8, 32).sum(axis=1)
+        total = float(hist.sum()) or 1.0
+        hist_values.extend((hist / total).tolist())
+
+    edges = gray.filter(ImageFilter.FIND_EDGES)
+    edge_values = np.asarray(edges, dtype="float32").reshape(-1) / 255.0
+
+    vector = np.concatenate([
+        np.asarray(hist_values, dtype="float32"),
+        gray_values,
+    ])
+
+    # Blend in a tiny edge/shape signal without changing vector size.
+    vector[24:] = (vector[24:] * 0.8) + (edge_values * 0.2)
+
+    norm = np.linalg.norm(vector)
+    if norm > 0:
+        vector = vector / norm
+
+    return vector.astype("float32")
+
+
+def embed_paths(paths, batch_size):
     vectors = []
     valid_paths = []
-    for start in range(0, len(paths), batch_size):
-        batch_paths = paths[start:start + batch_size]
-        images = []
-        kept = []
-        for path in batch_paths:
-            try:
-                image = Image.open(path).convert("RGB")
-                images.append(preprocess(image))
-                kept.append(path)
-            except Exception:
-                continue
-
-        if not images:
+    for path in paths:
+        try:
+            vectors.append(image_vector(path))
+            valid_paths.append(path)
+        except Exception:
             continue
 
-        tensor = torch.stack(images).to(device)
-        with torch.no_grad():
-            features = model.encode_image(tensor)
-            features = features / features.norm(dim=-1, keepdim=True)
-        vectors.append(features.cpu().numpy().astype("float32"))
-        valid_paths.extend(kept)
-
     if not vectors:
-        return np.empty((0, 512), dtype="float32"), []
+        return np.empty((0, VECTOR_DIM), dtype="float32"), []
 
     return np.vstack(vectors), valid_paths
 
 
-def make_index(dim):
+def make_index(dim=VECTOR_DIM):
     return faiss.IndexIDMap2(faiss.IndexFlatIP(dim))
 
 
-def read_index(path, dim):
+def read_index(path, dim=VECTOR_DIM):
     if os.path.exists(path):
-        return faiss.read_index(path)
+        index = faiss.read_index(path)
+        if index.d == dim:
+            return index
     return make_index(dim)
 
 
@@ -82,8 +91,7 @@ def write_index(index, path):
 
 def command_add(args):
     rows = read_manifest(args.manifest)
-    model, preprocess = load_model(args.model, args.pretrained, args.device)
-    vectors, valid_paths = embed_paths([row["path"] for row in rows], model, preprocess, args.device, args.batch_size)
+    vectors, valid_paths = embed_paths([row["path"] for row in rows], args.batch_size)
     by_path = {row["path"]: row for row in rows}
     indexed_rows = [by_path[path] for path in valid_paths]
 
@@ -98,17 +106,14 @@ def command_add(args):
 
 def command_rebuild(args):
     rows = read_manifest(args.manifest)
-    model, preprocess = load_model(args.model, args.pretrained, args.device)
-    vectors, valid_paths = embed_paths([row["path"] for row in rows], model, preprocess, args.device, args.batch_size)
+    vectors, valid_paths = embed_paths([row["path"] for row in rows], args.batch_size)
     by_path = {row["path"]: row for row in rows}
     indexed_rows = [by_path[path] for path in valid_paths]
 
+    index = make_index(vectors.shape[1] if vectors.shape[0] > 0 else VECTOR_DIM)
     if vectors.shape[0] > 0:
-        index = make_index(vectors.shape[1])
         ids = np.array([int(row["faiss_id"]) for row in indexed_rows], dtype="int64")
         index.add_with_ids(vectors, ids)
-    else:
-        index = make_index(512)
 
     write_index(index, args.index)
     print(json.dumps({"items": indexed_rows, "failed": len(rows) - len(indexed_rows)}))
@@ -119,13 +124,16 @@ def command_search(args):
         print(json.dumps({"matches": []}))
         return
 
-    model, preprocess = load_model(args.model, args.pretrained, args.device)
-    vectors, _ = embed_paths([args.image], model, preprocess, args.device, 1)
+    vectors, _ = embed_paths([args.image], 1)
     if vectors.shape[0] == 0:
         print(json.dumps({"matches": []}))
         return
 
     index = faiss.read_index(args.index)
+    if index.d != vectors.shape[1] or index.ntotal == 0:
+        print(json.dumps({"matches": []}))
+        return
+
     scores, ids = index.search(vectors, args.limit)
     matches = [
         {"faiss_id": int(faiss_id), "score": float(score)}
@@ -136,15 +144,15 @@ def command_search(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Local OpenCLIP + FAISS visual search helper")
+    parser = argparse.ArgumentParser(description="Local image-feature + FAISS visual search helper")
     parser.add_argument("command", choices=["add", "rebuild", "search"])
     parser.add_argument("--index", required=True)
     parser.add_argument("--manifest")
     parser.add_argument("--image")
     parser.add_argument("--limit", type=int, default=24)
     parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--model", default="ViT-B-32")
-    parser.add_argument("--pretrained", default="laion2b_s34b_b79k")
+    parser.add_argument("--model", default="local-image-features")
+    parser.add_argument("--pretrained", default="none")
     parser.add_argument("--device", default="cpu")
     return parser.parse_args()
 

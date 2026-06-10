@@ -3,7 +3,6 @@
 @section('title', 'Visual Search')
 
 @section('content')
-@include('components.auth-guard')
 @include('components.toast')
 
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="visualSearch()">
@@ -129,7 +128,7 @@
             primaryImage(product) {
                 if (product.images && product.images.length > 0) {
                     const primary = product.images.find(i => i.is_primary) || product.images[0];
-                    return primary.url;
+                    return primary.urls?.card_webp || primary.urls?.card || primary.url;
                 }
                 return 'https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image';
             },
@@ -141,12 +140,12 @@
                 try {
                     const form = new FormData();
                     form.append('image', this.file);
-                    form.append('top_k', this.topK);
-                    const { data } = await window.api.post('/ai/similarity-search', form, {
+                    form.append('limit', this.topK);
+                    const { data } = await window.api.post('/search/visual', form, {
                         headers: { 'Content-Type': 'multipart/form-data' },
                     });
                     this.products = data.products || [];
-                    this.log = data.log || null;
+                    this.log = data.meta || null;
                     this.searched = true;
                     if (this.products.length === 0) {
                         window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'info', message: 'No similar items found.' } }));
