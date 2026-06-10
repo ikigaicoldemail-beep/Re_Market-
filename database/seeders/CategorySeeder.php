@@ -11,7 +11,7 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            ['name' => 'Electronics & Gadgets',   'slug' => 'electronics',          'sort_order' => 1],
+            ['name' => 'Electronics & Gadgets',    'slug' => 'electronics',           'sort_order' => 1],
             ['name' => 'Motorcycles & Vehicles',   'slug' => 'motorcycles-vehicles',  'sort_order' => 2],
             ['name' => 'Fashion & Clothing',       'slug' => 'fashion-clothing',      'sort_order' => 3],
             ['name' => 'Home & Living',            'slug' => 'home-living',           'sort_order' => 4],

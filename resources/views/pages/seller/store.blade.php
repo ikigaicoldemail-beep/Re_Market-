@@ -40,7 +40,7 @@
                 {{-- Banner --}}
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Banner image</label>
-                    <div class="relative h-40 sm:h-48 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg overflow-hidden border border-gray-200">
+                    <div class="relative h-40 sm:h-48 bg-linear-to-br from-indigo-100 to-purple-100 rounded-lg overflow-hidden border border-gray-200">
                         <template x-if="bannerPreview">
                             <img :src="bannerPreview" alt="Banner preview" class="w-full h-full object-cover">
                         </template>
@@ -330,6 +330,7 @@
                 this.removeBannerFlag = true;
             },
             async save() {
+                const isCreating = !this.hasStore;
                 this.saving = true;
                 try {
                     const fd = new FormData();
@@ -364,6 +365,12 @@
                     }
                     this.store = data.store;
                     this.populateForm(data.store);
+
+                    if (isCreating && data.store?.id) {
+                        window.location.href = '/stores/' + data.store.id;
+                        return;
+                    }
+
                     window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: data.message || 'Saved!' } }));
                 } catch (e) {
                     window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));

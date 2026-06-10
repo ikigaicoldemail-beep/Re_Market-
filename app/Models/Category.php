@@ -29,7 +29,13 @@ class Category extends Model
             return null;
         }
 
-        return Storage::disk($this->logo_disk)->url($this->logo_path);
+        $url = Storage::disk($this->logo_disk)->url($this->logo_path);
+
+        if (config('filesystems.disks.'.$this->logo_disk.'.driver') === 'local') {
+            return parse_url($url, PHP_URL_PATH) ?: $url;
+        }
+
+        return $url;
     }
 
     public function parent(): BelongsTo

@@ -38,9 +38,21 @@ Route::view('/me/scheduled-listings', 'pages.seller.products.scheduled')->name('
 
 // Public stores
 Route::view('/stores', 'pages.stores.index')->name('stores.index');
-Route::view('/stores/{id}', 'pages.stores.show')
-    ->where('id', '[0-9]+')
-    ->name('stores.show');
+use App\Models\Store;
+
+Route::get('/stores/{slug}', function ($slug) {
+    if (is_numeric($slug)) {
+        $id = (int) $slug;
+        return view('pages.stores.show', ['id' => $id, 'ogStore' => null]);
+    }
+
+    $store = Store::where('slug', $slug)->first();
+    if (! $store) {
+        return view('pages.stores.show', ['id' => null, 'ogStore' => null]);
+    }
+
+    return view('pages.stores.show', ['id' => $store->id, 'ogStore' => $store]);
+})->name('stores.show');
 
 // Public categories browse
 Route::view('/categories', 'pages.categories.index')->name('categories.index');

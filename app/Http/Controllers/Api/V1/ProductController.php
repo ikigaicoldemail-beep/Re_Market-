@@ -140,6 +140,8 @@ class ProductController extends Controller
     {
         $products = $this->productService->listForStore($store);
 
+        $store->loadMissing('user');
+
         return response()->json([
             'store' => new StoreResource($store),
             'products' => ProductResource::collection($products),

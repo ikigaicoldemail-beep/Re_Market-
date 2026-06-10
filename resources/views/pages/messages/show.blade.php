@@ -6,7 +6,7 @@
 @include('components.auth-guard')
 @include('components.toast')
 
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="conversationThread()" x-init="init">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="conversationThread()" x-init="init">
     <a href="/messages" class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-600 mb-3 group">
         <x-heroicon-o-chevron-left class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"/>
         All conversations
@@ -27,36 +27,42 @@
     <div x-show="!loading && error" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm" x-text="error" style="display:none"></div>
 
     <div x-show="!loading && conversation && !error"
-        class="bg-white rounded-xl border border-gray-200 flex flex-col shadow-sm"
-        style="display:none; height: calc(100vh - 11rem); min-height: 520px;">
+        class="bg-white rounded-2xl border border-gray-200 flex flex-col shadow-sm overflow-hidden"
+        style="display:none; height: calc(100vh - 10rem); min-height: 540px;">
 
         {{-- ── Header ────────────────────────────────────────────────── --}}
-        <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-200">
-            {{-- Avatar --}}
-            <div class="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-semibold shrink-0"
-                x-text="otherInitial()"></div>
+        <div class="flex items-center gap-3 px-5 py-3 border-b border-gray-100 bg-white/90 backdrop-blur-sm shrink-0">
+            {{-- Avatar with presence dot --}}
+            <div class="relative shrink-0">
+                <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-full flex items-center justify-center font-semibold text-lg shadow-sm ring-2 ring-white"
+                    x-text="otherInitial()"></div>
+                <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full"></span>
+            </div>
 
             {{-- Name --}}
             <div class="flex-1 min-w-0">
-                <p class="font-semibold text-gray-900 truncate" x-text="otherName()"></p>
-                <p class="text-xs text-gray-400">Tap a product below to view it</p>
+                <p class="font-semibold text-gray-900 truncate leading-tight" x-text="otherName()"></p>
+                <p class="text-xs text-gray-400 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                    Active now
+                </p>
             </div>
 
             {{-- Product card pill (when product context exists) --}}
             <template x-if="conversation?.product">
                 <a :href="'/products/' + conversation.product.id"
-                    class="flex items-center gap-2 border border-gray-200 rounded-lg px-2 py-1.5 hover:bg-gray-50 shrink-0 max-w-[200px]">
+                    class="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 hover:bg-gray-100 hover:border-gray-300 transition shrink-0 max-w-[220px]">
                     <template x-if="productThumb()">
-                        <img :src="productThumb()" class="w-9 h-9 rounded object-cover border border-gray-100 shrink-0">
+                        <img :src="productThumb()" class="w-10 h-10 rounded-lg object-cover border border-gray-100 shrink-0">
                     </template>
                     <template x-if="!productThumb()">
-                        <div class="w-9 h-9 rounded bg-gray-100 flex items-center justify-center shrink-0">
-                            <x-heroicon-o-photo class="w-4 h-4 text-gray-400"/>
+                        <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                            <x-heroicon-o-photo class="w-5 h-5 text-gray-400"/>
                         </div>
                     </template>
                     <div class="min-w-0">
                         <p class="text-xs font-medium text-gray-800 truncate" x-text="conversation.product.title"></p>
-                        <p class="text-xs text-indigo-600 font-semibold"
+                        <p class="text-sm text-indigo-600 font-bold leading-tight"
                             x-text="formatPrice(conversation.product.price_amount, conversation.product.currency)"></p>
                     </div>
                 </a>
@@ -64,14 +70,15 @@
         </div>
 
         {{-- ── Messages ──────────────────────────────────────────────── --}}
-        <div class="flex-1 overflow-y-auto px-4 py-3 space-y-1" x-ref="scrollArea">
+        <div class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 space-y-1 bg-gradient-to-b from-gray-50 to-gray-50/40"
+            x-ref="scrollArea">
             <template x-if="messages.length === 0">
-                <div class="flex flex-col items-center justify-center py-12 text-center">
-                    <div class="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mb-3">
-                        <x-heroicon-o-chat-bubble-left-right class="w-7 h-7 text-indigo-400"/>
+                <div class="flex flex-col items-center justify-center h-full py-12 text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-indigo-50 to-violet-100 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+                        <x-heroicon-o-chat-bubble-left-right class="w-8 h-8 text-indigo-400"/>
                     </div>
-                    <p class="text-sm font-medium text-gray-600">Start the conversation</p>
-                    <p class="text-xs text-gray-400 mt-1">Ask about availability, price, or condition.</p>
+                    <p class="text-sm font-semibold text-gray-700">Start the conversation</p>
+                    <p class="text-xs text-gray-400 mt-1 max-w-xs">Ask about availability, price, or condition — be friendly and clear.</p>
                 </div>
             </template>
 
@@ -79,10 +86,9 @@
                 <div>
                     {{-- Date separator --}}
                     <template x-if="showDateSeparator(index)">
-                        <div class="flex items-center gap-3 py-2 my-1">
-                            <div class="flex-1 h-px bg-gray-200"></div>
-                            <span class="text-xs text-gray-400 font-medium px-2" x-text="dateSeparatorLabel(msg.sent_at)"></span>
-                            <div class="flex-1 h-px bg-gray-200"></div>
+                        <div class="flex justify-center py-3">
+                            <span class="text-[11px] text-gray-500 font-medium bg-white border border-gray-200 rounded-full px-3 py-1 shadow-sm"
+                                x-text="dateSeparatorLabel(msg.sent_at)"></span>
                         </div>
                     </template>
 
@@ -90,34 +96,37 @@
                     <div class="flex items-end gap-2" :class="isMine(msg) ? 'justify-end' : 'justify-start'">
                         {{-- Other person's avatar (only show on first in a group) --}}
                         <template x-if="!isMine(msg)">
-                            <div class="w-7 h-7 shrink-0 mb-0.5">
+                            <div class="w-7 h-7 shrink-0 mb-1">
                                 <template x-if="showAvatar(index)">
-                                    <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold flex items-center justify-center"
+                                    <div class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-white text-xs font-semibold flex items-center justify-center shadow-sm"
                                         x-text="otherInitial()"></div>
                                 </template>
                             </div>
                         </template>
 
-                        <div class="flex flex-col" :class="isMine(msg) ? 'items-end' : 'items-start'">
+                        <div class="flex flex-col max-w-[75%]" :class="isMine(msg) ? 'items-end' : 'items-start'">
                             {{-- Bubble --}}
                             <div :class="isMine(msg)
-                                    ? 'bg-indigo-600 text-white rounded-2xl rounded-br-md'
-                                    : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md'"
-                                class="max-w-[75%] px-3.5 py-2.5">
+                                    ? 'bg-indigo-600 text-white rounded-2xl rounded-br-sm'
+                                    : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm border border-gray-100'"
+                                class="px-3.5 py-2.5 shadow-sm">
                                 <template x-if="msg.attachment_url">
                                     <a :href="msg.attachment_url" target="_blank" class="block mb-1">
-                                        <img :src="msg.attachment_url" class="rounded-xl max-h-64 object-cover">
+                                        <img :src="msg.attachment_url" class="rounded-xl max-h-64 w-auto object-cover">
                                     </a>
                                 </template>
-                                <p class="text-sm whitespace-pre-line break-words"
+                                <p class="text-sm leading-relaxed whitespace-pre-line break-words"
                                     x-show="msg.body && msg.body !== '[image]'"
                                     x-text="msg.body" style="display:none"></p>
-                                <p class="text-[10px] mt-0.5 opacity-60 text-right" x-text="formatTime(msg.sent_at)"></p>
+                                <p class="text-[10px] mt-1 opacity-60 text-right" x-text="formatTime(msg.sent_at)"></p>
                             </div>
 
                             {{-- Seen receipt for my last sent message --}}
                             <template x-if="isMine(msg) && isLastSentMessage(index)">
-                                <p class="text-[10px] text-gray-400 mt-0.5 px-1" x-text="seenLabel"></p>
+                                <p class="text-[10px] text-gray-400 mt-1 px-1 flex items-center gap-1">
+                                    <x-heroicon-s-check-circle class="w-3 h-3"/>
+                                    <span x-text="seenLabel"></span>
+                                </p>
                             </template>
                         </div>
                     </div>
@@ -126,45 +135,46 @@
         </div>
 
         {{-- ── Composer ──────────────────────────────────────────────── --}}
-        <div class="border-t border-gray-200 p-3">
-            {{-- Quick offer button --}}
+        <div class="border-t border-gray-100 px-4 sm:px-5 py-3 bg-white shrink-0">
+            {{-- Quick action buttons --}}
             <template x-if="conversation?.product">
-                <div class="flex gap-2 mb-2">
+                <div class="flex gap-2 mb-2.5">
                     <button @click="insertOffer()"
-                        class="text-xs border border-indigo-300 text-indigo-700 px-3 py-1 rounded-full hover:bg-indigo-50 transition">
+                        class="text-xs font-medium border border-indigo-200 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full hover:bg-indigo-100 transition">
                         💬 Make an offer
                     </button>
                     <button @click="insertQuestion()"
-                        class="text-xs border border-gray-300 text-gray-600 px-3 py-1 rounded-full hover:bg-gray-50 transition">
+                        class="text-xs font-medium border border-gray-200 bg-gray-50 text-gray-600 px-3 py-1.5 rounded-full hover:bg-gray-100 transition">
                         ❓ Ask a question
                     </button>
                 </div>
             </template>
 
             {{-- Image attachment preview --}}
-            <div x-show="pendingFilePreview" class="mb-2 inline-block relative" style="display:none">
-                <img :src="pendingFilePreview" class="h-24 rounded-lg object-cover border border-gray-200">
+            <div x-show="pendingFilePreview" class="mb-2.5 inline-block relative" style="display:none">
+                <img :src="pendingFilePreview" class="h-24 rounded-xl object-cover border border-gray-200 shadow-sm">
                 <button type="button" @click="clearAttachment()"
-                    class="absolute -top-2 -right-2 w-5 h-5 bg-gray-800 text-white rounded-full text-xs flex items-center justify-center hover:bg-black">×</button>
+                    class="absolute -top-2 -right-2 w-5 h-5 bg-gray-800 text-white rounded-full text-xs flex items-center justify-center hover:bg-black shadow">×</button>
             </div>
 
             <form @submit.prevent="send()" class="flex items-end gap-2">
-                {{-- Attach image --}}
-                <label class="cursor-pointer p-2 text-gray-400 hover:text-indigo-600 shrink-0" title="Attach image">
-                    <input type="file" accept="image/*" class="hidden" @change="onAttach($event)" x-ref="fileInput">
-                    <x-heroicon-o-paper-clip class="w-5 h-5"/>
-                </label>
+                {{-- Input pill: attach + textarea --}}
+                <div class="flex-1 flex items-end gap-1 bg-gray-100 rounded-2xl pl-2 pr-2.5 py-1 transition focus-within:ring-2 focus-within:ring-indigo-500 focus-within:bg-white">
+                    <label class="cursor-pointer p-2 text-gray-400 hover:text-indigo-600 shrink-0 transition" title="Attach image">
+                        <input type="file" accept="image/*" class="hidden" @change="onAttach($event)" x-ref="fileInput">
+                        <x-heroicon-o-paper-clip class="w-5 h-5"/>
+                    </label>
 
-                <textarea x-model="draft" x-ref="composer" rows="1"
-                    @keydown.enter.exact.prevent="send()"
-                    @keydown.enter.shift="/* allow newline */"
-                    @input="autoResize($event)"
-                    placeholder="Type a message… (Enter to send)"
-                    class="flex-1 resize-none border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    style="max-height: 120px;"></textarea>
+                    <textarea x-model="draft" x-ref="composer" rows="1"
+                        @keydown.enter.exact.prevent="send()"
+                        @input="autoResize($event)"
+                        placeholder="Type a message…"
+                        class="flex-1 resize-none bg-transparent border-0 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0"
+                        style="max-height: 120px;"></textarea>
+                </div>
 
                 <button type="submit" :disabled="(!draft.trim() && !pendingFile) || sending"
-                    class="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 disabled:opacity-40 shrink-0 transition">
+                    class="bg-indigo-600 text-white w-11 h-11 flex items-center justify-center rounded-full hover:bg-indigo-700 disabled:opacity-40 disabled:hover:bg-indigo-600 shrink-0 shadow-sm transition">
                     <template x-if="!sending">
                         <x-heroicon-m-paper-airplane class="w-5 h-5"/>
                     </template>
@@ -278,9 +288,9 @@
                         const form = new FormData();
                         if (body) form.append('body', body);
                         form.append('attachment', this.pendingFile);
-                        resp = await window.api.post('/conversations/' + this.conversationId + '/messages', form, {
-                            headers: { 'Content-Type': 'multipart/form-data' },
-                        });
+                        // Let axios/the browser set Content-Type so the multipart
+                        // boundary is included — otherwise the upload can't be parsed.
+                        resp = await window.api.post('/conversations/' + this.conversationId + '/messages', form);
                     } else {
                         resp = await window.api.post('/conversations/' + this.conversationId + '/messages', { body });
                     }
