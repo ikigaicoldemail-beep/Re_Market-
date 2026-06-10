@@ -4,11 +4,23 @@ set -e
 cd /var/www/html
 
 if [ ! -f .env ] && [ -f .env.example ]; then
-  cp .env.example .env
+  cp -n .env.example .env 2>/dev/null || true
 fi
 
 if [ ! -f vendor/autoload.php ]; then
-  composer install
+  while ! mkdir .composer-install.lock 2>/dev/null; do
+    if [ -f vendor/autoload.php ]; then
+      break
+    fi
+    echo "Waiting for Composer install to finish..."
+    sleep 2
+  done
+
+  if [ ! -f vendor/autoload.php ]; then
+    composer install
+  fi
+
+  rmdir .composer-install.lock 2>/dev/null || true
 fi
 
 mkdir -p storage bootstrap/cache database

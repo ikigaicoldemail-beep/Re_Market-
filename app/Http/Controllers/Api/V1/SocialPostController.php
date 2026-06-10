@@ -40,9 +40,7 @@ class SocialPostController extends Controller
     public function store(CreateSocialPostRequest $request): JsonResponse
     {
         $product = Product::findOrFail($request->validated('product_id'));
-        $account = $request->validated('social_account_id')
-            ? SocialAccount::findOrFail($request->validated('social_account_id'))
-            : null;
+        $account = SocialAccount::findOrFail($request->validated('social_account_id'));
 
         $post = $this->socialPostingService->createPost($request->user(), $product, $account, $request->validated());
 

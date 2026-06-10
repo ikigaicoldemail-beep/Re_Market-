@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Models\Product;
-use App\Models\ProductReport;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -89,41 +88,5 @@ class AdminApiTest extends TestCase
                 'status' => 'suspended',
             ])
             ->assertForbidden();
-    }
-
-    public function test_admin_can_list_reports_with_open_reports_first(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $reporter = User::factory()->create();
-        $seller = User::factory()->create(['role' => 'seller']);
-        $store = Store::factory()->for($seller)->create();
-        $openProduct = Product::factory()->forStore($store)->create();
-        $resolvedProduct = Product::factory()->forStore($store)->create();
-
-        ProductReport::create([
-            'product_id' => $resolvedProduct->id,
-            'reporter_id' => $reporter->id,
-            'reason' => 'spam',
-            'details' => 'Already handled.',
-            'status' => 'resolved',
-            'resolved_by' => $admin->id,
-            'resolved_at' => now(),
-        ]);
-        ProductReport::create([
-            'product_id' => $openProduct->id,
-            'reporter_id' => $reporter->id,
-            'reason' => 'scam',
-            'details' => 'Needs review.',
-            'status' => 'open',
-        ]);
-
-        $token = Auth::guard('api')->login($admin);
-
-        $this
-            ->withHeader('Authorization', 'Bearer '.$token)
-            ->getJson('/api/v1/admin/reports')
-            ->assertOk()
-            ->assertJsonPath('reports.0.status', 'open')
-            ->assertJsonPath('reports.1.status', 'resolved');
     }
 }

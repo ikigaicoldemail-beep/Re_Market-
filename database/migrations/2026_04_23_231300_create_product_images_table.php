@@ -17,11 +17,13 @@ return new class extends Migration
             $table->unsignedBigInteger('file_size')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->boolean('is_primary')->default(false);
+            $table->string('ai_embedding_status')->default('pending');
             $table->timestamps();
 
             $table->index('product_id');
             $table->index('is_primary');
             $table->index('sort_order');
+            $table->index('ai_embedding_status');
         });
     }
 

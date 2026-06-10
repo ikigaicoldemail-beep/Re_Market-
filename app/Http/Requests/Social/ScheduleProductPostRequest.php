@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests\Social;
 
-use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
 
 class ScheduleProductPostRequest extends FormRequest
 {
@@ -35,26 +33,8 @@ class ScheduleProductPostRequest extends FormRequest
             'scheduled_date' => ['required', 'date', 'date_format:Y-m-d', 'after_or_equal:today'],
             'scheduled_time' => ['required', 'date_format:H:i'],
             'post_to' => ['sometimes', 'in:marketplace,user_account'],
-            'social_account_id' => ['nullable', 'exists:social_accounts,id'],
+            'social_account_id' => ['required_if:post_to,user_account', 'exists:social_accounts,id'],
             'caption' => ['nullable', 'string', 'max:1000'],
-        ];
-    }
-
-    public function after(): array
-    {
-        return [
-            function (Validator $validator): void {
-                $date = $this->input('scheduled_date');
-                $time = $this->input('scheduled_time');
-
-                if (! $date || ! $time || $validator->errors()->isNotEmpty()) {
-                    return;
-                }
-
-                if (Carbon::parse($date.' '.$time)->lte(now())) {
-                    $validator->errors()->add('scheduled_time', 'Scheduled date and time must be in the future.');
-                }
-            },
         ];
     }
 

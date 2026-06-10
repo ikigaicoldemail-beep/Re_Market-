@@ -12,7 +12,6 @@ class ProductVariant extends Model
 
     protected $fillable = [
         'product_id',
-<<<<<<<< HEAD:app/Models/ProductVariant.php
         'label',
         'sku',
         'attributes',
@@ -21,12 +20,6 @@ class ProductVariant extends Model
         'stock_quantity',
         'sort_order',
         'is_default',
-========
-        'product_variant_id',
-        'quantity',
-        'unit_price_amount',
-        'line_total_amount',
->>>>>>>> lyhour7/PPM:app/Models/CartItem.php
     ];
 
     protected function casts(): array
@@ -40,10 +33,5 @@ class ProductVariant extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
-    }
-
-    public function variant(): BelongsTo
-    {
-        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 }

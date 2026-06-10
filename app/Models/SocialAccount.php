@@ -52,11 +52,6 @@ class SocialAccount extends Model
         }
     }
 
-    public function setAccessTokenAttribute(?string $value): void
-    {
-        $this->attributes['access_token'] = $this->encryptTokenForStorage($value);
-    }
-
     public function getRefreshTokenAttribute(?string $value): ?string
     {
         if ($value === null) {
@@ -70,11 +65,6 @@ class SocialAccount extends Model
         }
     }
 
-    public function setRefreshTokenAttribute(?string $value): void
-    {
-        $this->attributes['refresh_token'] = $this->encryptTokenForStorage($value);
-    }
-
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -83,20 +73,5 @@ class SocialAccount extends Model
     public function posts(): HasMany
     {
         return $this->hasMany(SocialPost::class);
-    }
-
-    private function encryptTokenForStorage(?string $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return $value;
-        }
-
-        try {
-            Crypt::decryptString($value);
-
-            return $value;
-        } catch (\Throwable) {
-            return Crypt::encryptString($value);
-        }
     }
 }

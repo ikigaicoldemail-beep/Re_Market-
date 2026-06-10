@@ -217,25 +217,30 @@ Current product form behavior:
 - unsupported values such as `instagram` or `all` are rejected
 - create flow blocks Facebook auto-post unless a product image is attached
 
-## Visual Search Removal
+## Visual Search
 
-Visual search / AI similarity was removed completely from active code.
+Visual search is integrated into the marketplace API and home search UI.
 
-Removed items include:
+Current flow:
 
-- `/search/visual`
-- `/api/v1/ai/similarity-search`
-- AI embedding services, jobs, models, requests, resources, and providers
-- AI env/config/rate-limit settings
-- product page “find visually similar” UI
+- seller product image upload indexes the listing image through OpenCLIP + FAISS
+- `POST /api/search/visual` and `POST /api/v1/search/visual` accept multipart `image`
+- search results return regular product resources with a `similarity` score
+- FAISS vectors live in `storage/app/visual-search/faiss.index`
+- SQL only stores the lightweight `listing_visual_index` mapping from listing/image to FAISS id
 
-Cleanup migration:
+Local AI dependencies:
 
 ```bash
-C:\xampp\php\php.exe artisan migrate
+pip3 install -r scripts/requirements-visual-search.txt
 ```
 
-The cleanup migration drops old AI tables/columns if they exist.
+Backfill/rebuild existing listings:
+
+```bash
+php artisan visual-search:generate-embeddings
+python manage.py generate-embeddings
+```
 
 ## Production Notes
 

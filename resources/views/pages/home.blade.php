@@ -5,7 +5,26 @@
 @section('content')
 @include('components.toast')
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="productList()" x-init="init">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+    x-data="productList()"
+    x-init="init"
+    @visual-search:file.window="searchByPhotoFile($event.detail.file)"
+    @paste.window="handleVisualPaste($event)"
+    @dragenter.window="handleVisualDragEnter($event)"
+    @dragover.window="handleVisualDragOver($event)"
+    @dragleave.window="handleVisualDragLeave($event)"
+    @drop.window="handleVisualDrop($event)">
+    <div x-show="visualDragging" x-transition.opacity
+        class="fixed inset-0 z-50 bg-gray-950/60 backdrop-blur-sm flex items-center justify-center px-4"
+        style="display:none">
+        <div class="w-full max-w-sm rounded-lg border border-white/20 bg-white text-gray-900 shadow-2xl p-6 text-center">
+            <div class="w-12 h-12 mx-auto rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center mb-3">
+                <x-heroicon-o-camera class="w-6 h-6"/>
+            </div>
+            <p class="text-lg font-semibold">Drop image</p>
+        </div>
+    </div>
+
     {{-- Hero slider --}}
     <div x-show="banners.length > 0" class="mb-8 relative rounded-2xl overflow-hidden shadow" style="display:none">
         <div class="relative aspect-[5/2] sm:aspect-[12/4] bg-gradient-to-br from-indigo-100 to-pink-100">
@@ -210,9 +229,25 @@
 
                 <div class="mb-5">
                     <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="filters.search">Search</label>
-                    <input type="text" x-model.debounce.400ms="filters.search" @input="resetAndFetch()"
-                        placeholder="Title, description..." data-i18n="filters.search_placeholder" data-i18n-placeholder
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <div class="flex gap-2">
+                        <input type="text" x-model.debounce.400ms="filters.search" @input="resetAndFetch()"
+                            placeholder="Title, description..." data-i18n="filters.search_placeholder" data-i18n-placeholder
+                            class="min-w-0 flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button type="button" @click="$refs.visualSearchInput.click()" :disabled="visualSearching"
+                            title="Search by photo"
+                            class="w-10 h-10 rounded-lg border border-gray-300 bg-white text-gray-600 hover:text-indigo-700 hover:border-indigo-300 disabled:opacity-50 flex items-center justify-center">
+                            <x-heroicon-o-camera class="w-5 h-5"/>
+                        </button>
+                        <input x-ref="visualSearchInput" type="file" accept="image/png,image/jpeg,image/webp" capture="environment"
+                            @change="searchByPhoto($event)" class="hidden">
+                    </div>
+                    <div x-show="visualSearchActive" class="mt-2 flex items-center gap-2 text-xs text-indigo-700" style="display:none">
+                        <span class="inline-flex items-center gap-1">
+                            <x-heroicon-o-camera class="w-3.5 h-3.5"/>
+                            Photo results
+                        </span>
+                        <button type="button" @click="clearVisualSearch()" class="font-medium hover:text-indigo-900">Clear</button>
+                    </div>
                 </div>
 
                 <div class="mb-5">
@@ -254,19 +289,32 @@
             </div>
         </aside>
 
-        {{-- Product Grid --}}
-        <div class="flex-1">
-            <div class="flex items-center justify-between mb-6">
-                <h1 class="text-2xl font-semibold text-gray-900" data-i18n="home.browse">Browse</h1>
-                <span class="text-sm text-gray-500" x-text="meta.total + ' ' + (window.t ? window.t('common.items') : 'items')"></span>
-            </div>
+            {{-- Product Grid --}}
+            <div class="flex-1">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 class="text-2xl font-semibold text-gray-900" data-i18n="home.browse">Browse</h1>
+                        <div x-show="visualSearchActive" class="mt-2 flex items-center gap-2 text-sm text-indigo-700" style="display:none">
+                            <span class="inline-flex items-center gap-1.5">
+                                <x-heroicon-o-camera class="w-4 h-4"/>
+                                Image search results
+                            </span>
+                            <button type="button" @click="clearVisualSearch()" class="text-xs font-semibold hover:text-indigo-900">Clear</button>
+                        </div>
+                    </div>
+                    <span class="text-sm text-gray-500" x-text="meta.total + ' ' + (window.t ? window.t('common.items') : 'items')"></span>
+                </div>
 
-            <div x-show="loading && products.length === 0" class="text-center py-20 text-gray-500" data-i18n="home.loading_products" style="display:none">
-                Loading products...
+            <div x-show="loading && products.length === 0" class="text-center py-20 text-gray-500" style="display:none">
+                <div class="w-10 h-10 mx-auto mb-3 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin"></div>
+                <p x-text="visualSearching ? 'Searching by image...' : 'Loading products...'"></p>
             </div>
 
             <div x-show="!loading && products.length === 0" class="text-center py-20 bg-white rounded-xl border border-gray-200" style="display:none">
-                <p class="text-gray-500" data-i18n="home.no_products">No products found. Try adjusting your filters.</p>
+                <div x-show="visualSearchActive" class="w-12 h-12 mx-auto rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3" style="display:none">
+                    <x-heroicon-o-camera class="w-6 h-6"/>
+                </div>
+                <p class="text-gray-500" x-text="visualSearchActive ? 'No visual matches found for this image.' : 'No products found. Try adjusting your filters.'"></p>
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -294,6 +342,9 @@
                                 class="absolute bottom-2 right-2 px-1.5 py-1 rounded-full bg-amber-100 text-amber-700" style="display:none">
                                 <x-heroicon-s-fire class="w-3 h-3"/>
                             </span>
+                            <span x-show="product.similarity"
+                                class="absolute bottom-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-600 text-white" style="display:none"
+                                x-text="Math.round(product.similarity * 100) + '% match'"></span>
                         </div>
                         <div class="p-3 flex-1 flex flex-col">
                             <h3 class="font-medium text-gray-900 text-sm line-clamp-2 mb-1.5" x-text="product.title"></h3>
@@ -349,6 +400,9 @@
             bannerTimer: null,
             trending: [],
             meta: { current_page: 1, last_page: 1, total: 0 },
+            visualSearching: false,
+            visualSearchActive: false,
+            visualDragging: false,
             filters: {
                 search: '',
                 category_id: '',
@@ -383,6 +437,11 @@
                     this.fetchTrending(),
                     this.fetchShops(),
                 ]);
+                if (window.__pendingVisualSearchFile) {
+                    const file = window.__pendingVisualSearchFile;
+                    window.__pendingVisualSearchFile = null;
+                    await this.searchByPhotoFile(file);
+                }
             },
             selectBrand(id) {
                 this.filters.brand_id = (this.filters.brand_id == id) ? '' : id;
@@ -487,6 +546,7 @@
                 } catch {}
             },
             async fetchProducts() {
+                this.visualSearchActive = false;
                 this.loading = true;
                 try {
                     const params = {};
@@ -507,6 +567,95 @@
                 } finally {
                     this.loading = false;
                 }
+            },
+            async searchByPhoto(event) {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                await this.searchByPhotoFile(file);
+            },
+            async searchByPhotoFile(file) {
+                if (!file || !file.type?.startsWith('image/')) return;
+
+                this.visualSearching = true;
+                this.visualSearchActive = true;
+                this.loading = true;
+                this.visualDragging = false;
+                try {
+                    const fd = new FormData();
+                    fd.append('image', file);
+                    fd.append('limit', 24);
+
+                    const { data } = await window.api.post('/search/visual', fd, {
+                        headers: { 'Content-Type': 'multipart/form-data' },
+                    });
+
+                    this.products = data.products || [];
+                    this.meta = {
+                        current_page: 1,
+                        last_page: 1,
+                        per_page: this.products.length,
+                        total: data.meta?.total ?? this.products.length,
+                    };
+                    this.visualSearchActive = true;
+                    if (this.products.length === 0) {
+                        window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'info', message: 'No visual matches found for this image.' } }));
+                    }
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } catch (e) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
+                } finally {
+                    this.visualSearching = false;
+                    this.loading = false;
+                }
+            },
+            hasVisualImage(dataTransfer) {
+                if (!dataTransfer) return false;
+                return Array.from(dataTransfer.items || []).some(item => item.kind === 'file' && item.type.startsWith('image/'))
+                    || Array.from(dataTransfer.files || []).some(file => file.type.startsWith('image/'));
+            },
+            firstVisualImage(files) {
+                return Array.from(files || []).find(file => file.type?.startsWith('image/'));
+            },
+            firstVisualImageItem(items) {
+                const item = Array.from(items || []).find(entry => entry.kind === 'file' && entry.type?.startsWith('image/'));
+                return item ? item.getAsFile() : null;
+            },
+            handleVisualPaste(event) {
+                const file = this.firstVisualImage(event.clipboardData?.files)
+                    || this.firstVisualImageItem(event.clipboardData?.items);
+                if (!file) return;
+                event.preventDefault();
+                this.searchByPhotoFile(file);
+            },
+            handleVisualDragEnter(event) {
+                if (!this.hasVisualImage(event.dataTransfer)) return;
+                event.preventDefault();
+                this.visualDragging = true;
+            },
+            handleVisualDragOver(event) {
+                if (!this.hasVisualImage(event.dataTransfer)) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'copy';
+                this.visualDragging = true;
+            },
+            handleVisualDragLeave(event) {
+                if (event.clientX > 0 && event.clientY > 0 && event.clientX < window.innerWidth && event.clientY < window.innerHeight) {
+                    return;
+                }
+                this.visualDragging = false;
+            },
+            handleVisualDrop(event) {
+                const file = this.firstVisualImage(event.dataTransfer?.files);
+                if (!file) {
+                    this.visualDragging = false;
+                    return;
+                }
+                event.preventDefault();
+                this.searchByPhotoFile(file);
+            },
+            clearVisualSearch() {
+                this.visualSearchActive = false;
+                this.resetAndFetch();
             },
             resetAndFetch() {
                 this.filters.page = 1;

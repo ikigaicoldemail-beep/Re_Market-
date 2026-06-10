@@ -15,9 +15,9 @@ class CreateSocialPostRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'platform' => ['required', Rule::in(['facebook'])],
+            'platform' => ['required', Rule::in(['facebook', 'tiktok'])],
             'product_id' => ['required', 'integer', 'exists:products,id'],
-            'social_account_id' => ['nullable', 'integer', 'exists:social_accounts,id'],
+            'social_account_id' => ['required', 'integer', 'exists:social_accounts,id'],
             'caption' => ['nullable', 'string', 'max:5000'],
             'publish_now' => ['nullable', 'boolean'],
         ];

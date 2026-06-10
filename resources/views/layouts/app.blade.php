@@ -88,6 +88,96 @@
             transition: background .15s;
         }
         .rm-search button:hover { background: #4338ca; }
+        .rm-vsearch-wrap {
+            position: relative;
+            display: flex;
+            border-left: 1px solid #e0e7ff;
+        }
+        .rm-search .rm-vsearch-btn,
+        .rm-vsearch-btn {
+            width: 42px;
+            padding: 0;
+            background: transparent;
+            color: #6b7280;
+            justify-content: center;
+        }
+        .rm-search .rm-vsearch-btn:hover,
+        .rm-search .rm-vsearch-btn.is-open,
+        .rm-vsearch-btn:hover,
+        .rm-vsearch-btn.is-open {
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+        .rm-vsearch-popover {
+            position: absolute;
+            right: 0;
+            top: calc(100% + .75rem);
+            width: 24rem;
+            max-width: calc(100vw - 2rem);
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, .12);
+            z-index: 60;
+            padding: 1rem;
+        }
+        .rm-vsearch-popover::before {
+            content: "";
+            position: absolute;
+            right: 1rem;
+            top: -.5rem;
+            width: 1rem;
+            height: 1rem;
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
+            border-top: 1px solid #e5e7eb;
+            transform: rotate(45deg);
+        }
+        .rm-vsearch-drop {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            background: #f9fafb;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            transition: background .15s, border-color .15s;
+        }
+        .rm-vsearch-drop.is-dragging {
+            border-color: #6366f1;
+            background: #eef2ff;
+        }
+        .rm-search .rm-vsearch-upload,
+        .rm-vsearch-upload {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .4rem;
+            border-radius: 7px;
+            background: #4f46e5;
+            color: #fff;
+            padding: .55rem .9rem;
+            font-size: .8125rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .rm-search .rm-vsearch-upload:hover,
+        .rm-vsearch-upload:hover { background: #4338ca; }
+        .rm-search .rm-vsearch-close,
+        .rm-vsearch-close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            height: 1.75rem;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #9ca3af;
+            cursor: pointer;
+        }
+        .rm-search .rm-vsearch-close:hover,
+        .rm-vsearch-close:hover { background: #f3f4f6; color: #374151; }
 
         /* Right actions cluster */
         .rm-actions {
@@ -398,7 +488,7 @@
             </a>
 
             {{-- Search --}}
-            <div class="rm-search flex-1 max-w-lg hidden md:flex">
+            <div class="rm-search flex-1 max-w-lg hidden md:flex" x-data="visualSearchLauncher()">
                 <form action="{{ route('home') }}" method="GET" class="contents">
                     <input
                         type="text"
@@ -408,6 +498,57 @@
                         data-i18n="filters.search_placeholder"
                         data-i18n-placeholder
                     >
+                    <div class="rm-vsearch-wrap">
+                        <button type="button"
+                                @click="open = !open"
+                                :class="open ? 'is-open' : ''"
+                                class="rm-vsearch-btn"
+                                title="Search by photo"
+                                aria-label="Search by photo">
+                            <x-heroicon-o-camera class="w-5 h-5"/>
+                        </button>
+                        <div x-show="open"
+                             x-transition.origin.top.right
+                             @click.outside="open = false"
+                             @paste.window="dispatchPastedFile($event)"
+                             class="rm-vsearch-popover"
+                             style="display:none">
+                            <div style="position:relative;">
+                                <div class="flex items-start justify-between gap-3 mb-3">
+                                    <div>
+                                        <h3 class="text-base font-semibold text-gray-900">Search by image</h3>
+                                        <p class="text-sm text-gray-500 mt-0.5">Find similar listings from a photo.</p>
+                                    </div>
+                                    <button type="button" @click="open = false" class="rm-vsearch-close" aria-label="Close image search">
+                                        <x-heroicon-m-x-mark class="w-5 h-5"/>
+                                    </button>
+                                </div>
+                                <div @dragenter.prevent.stop="dragging = true"
+                                     @dragover.prevent.stop="dragging = true; $event.dataTransfer.dropEffect = 'copy'"
+                                     @dragleave.prevent.stop="dragging = false"
+                                     @drop.prevent.stop="dispatchDroppedFile($event)"
+                                     @paste.stop="dispatchPastedFile($event)"
+                                     :class="dragging ? 'is-dragging' : ''"
+                                     class="rm-vsearch-drop">
+                                    <div class="w-12 h-12 mx-auto rounded-full bg-white border border-gray-200 text-indigo-600 flex items-center justify-center mb-3">
+                                        <x-heroicon-o-photo class="w-6 h-6"/>
+                                    </div>
+                                    <p class="text-sm font-medium text-gray-900">Drag an image here</p>
+                                    <p class="text-xs text-gray-500 my-2">or paste an image</p>
+                                    <button type="button" @click="$refs.visualSearchInput.click()" class="rm-vsearch-upload">
+                                        <x-heroicon-o-arrow-up-tray class="w-4 h-4"/>
+                                        Upload photo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <input x-ref="visualSearchInput"
+                               type="file"
+                               accept="image/png,image/jpeg,image/webp"
+                               capture="environment"
+                               @change="dispatchVisualFile($event)"
+                               class="hidden">
+                    </div>
                     <button type="submit">
                         <x-heroicon-o-magnifying-glass class="w-4 h-4"/>
                         <span class="hidden sm:inline" data-i18n="nav.search">Search</span>
@@ -417,6 +558,59 @@
 
             {{-- Right-side actions --}}
             <div class="rm-actions" x-data>
+
+                {{-- Mobile visual search --}}
+                <div class="md:hidden relative" x-data="visualSearchLauncher()">
+                    <button type="button"
+                            @click="open = !open"
+                            :class="open ? 'text-indigo-700 bg-indigo-50' : ''"
+                            class="rm-ibtn"
+                            title="Search by photo"
+                            aria-label="Search by photo">
+                        <x-heroicon-o-camera class="w-5 h-5"/>
+                    </button>
+                    <div x-show="open"
+                         x-transition.origin.top.right
+                         @click.outside="open = false"
+                         @paste.window="dispatchPastedFile($event)"
+                         class="rm-vsearch-popover"
+                         style="display:none; right:0;">
+                        <div style="position:relative;">
+                            <div class="flex items-start justify-between gap-3 mb-3">
+                                <div>
+                                    <h3 class="text-base font-semibold text-gray-900">Search by image</h3>
+                                    <p class="text-sm text-gray-500 mt-0.5">Find similar listings from a photo.</p>
+                                </div>
+                                <button type="button" @click="open = false" class="rm-vsearch-close" aria-label="Close image search">
+                                    <x-heroicon-m-x-mark class="w-5 h-5"/>
+                                </button>
+                            </div>
+                            <div @dragenter.prevent.stop="dragging = true"
+                                 @dragover.prevent.stop="dragging = true; $event.dataTransfer.dropEffect = 'copy'"
+                                 @dragleave.prevent.stop="dragging = false"
+                                 @drop.prevent.stop="dispatchDroppedFile($event)"
+                                 @paste.stop="dispatchPastedFile($event)"
+                                 :class="dragging ? 'is-dragging' : ''"
+                                 class="rm-vsearch-drop">
+                                <div class="w-12 h-12 mx-auto rounded-full bg-white border border-gray-200 text-indigo-600 flex items-center justify-center mb-3">
+                                    <x-heroicon-o-photo class="w-6 h-6"/>
+                                </div>
+                                <p class="text-sm font-medium text-gray-900">Drag an image here</p>
+                                <p class="text-xs text-gray-500 my-2">or paste an image</p>
+                                <button type="button" @click="$refs.mobileVisualSearchInput.click()" class="rm-vsearch-upload">
+                                    <x-heroicon-o-arrow-up-tray class="w-4 h-4"/>
+                                    Upload photo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <input x-ref="mobileVisualSearchInput"
+                           type="file"
+                           accept="image/png,image/jpeg,image/webp"
+                           capture="environment"
+                           @change="dispatchVisualFile($event)"
+                           class="hidden">
+                </div>
 
                 {{-- Compare --}}
                 <a href="{{ route('compare') }}" class="rm-ibtn hidden sm:inline-flex" :aria-label="window.t ? window.t('nav.compare') : 'Compare'">
@@ -605,6 +799,47 @@
             <p class="rm-footer-copy">&copy; {{ date('Y') }} ReMarket. All rights reserved.</p>
         </div>
     </footer>
+
+    <script>
+        function visualSearchLauncher() {
+            return {
+                open: false,
+                dragging: false,
+                dispatchVisualFile(event) {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+                    this.dispatchFile(file);
+                },
+                dispatchDroppedFile(event) {
+                    this.dragging = false;
+                    this.dispatchFile(this.firstImage(event.dataTransfer?.files));
+                },
+                dispatchPastedFile(event) {
+                    const file = this.firstImage(event.clipboardData?.files) || this.firstImageItem(event.clipboardData?.items);
+                    if (!file) return;
+                    event.preventDefault();
+                    this.dispatchFile(file);
+                },
+                dispatchFile(file) {
+                    if (!file || !file.type?.startsWith('image/')) return;
+
+                    window.__pendingVisualSearchFile = file;
+                    window.dispatchEvent(new CustomEvent('visual-search:file', {
+                        detail: { file },
+                    }));
+                    this.open = false;
+                    this.dragging = false;
+                },
+                firstImage(files) {
+                    return Array.from(files || []).find(file => file.type?.startsWith('image/'));
+                },
+                firstImageItem(items) {
+                    const item = Array.from(items || []).find(entry => entry.kind === 'file' && entry.type?.startsWith('image/'));
+                    return item ? item.getAsFile() : null;
+                },
+            };
+        }
+    </script>
 
     @stack('scripts')
 </body>

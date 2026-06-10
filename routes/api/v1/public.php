@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\StoreController;
+use App\Http\Controllers\Api\V1\VisualSearchController;
 use App\Http\Resources\BrandResource;
 use App\Http\Resources\CategoryResource;
 use App\Http\Resources\ProductConditionResource;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('throttle:public-search')->group(function () {
     Route::get('/products', [ProductController::class, 'index']);
+    Route::post('/search/visual', VisualSearchController::class);
     Route::get('/products/{product}', [ProductController::class, 'show']);
     Route::get('/products/{product}/share', [ProductController::class, 'share']);
     Route::get('/stores', [StoreController::class, 'publicIndex']);

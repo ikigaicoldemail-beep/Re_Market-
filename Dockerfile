@@ -1,19 +1,41 @@
-FROM php:8.2-cli
+FROM php:8.2-cli-bookworm
 
 WORKDIR /app
 
 # System deps
-RUN apt-get update && apt-get install -y git unzip zip curl && \
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    zip \
+    curl \
+    python3 \
+    python3-pip \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    libwebp-dev \
+    libzip-dev && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
 # PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install gd pdo pdo_mysql zip
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY . .
+
+RUN pip3 install --break-system-packages --no-cache-dir -r scripts/requirements-visual-search.txt
+
+# Laravel required folders BEFORE composer install
+RUN mkdir -p storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    bootstrap/cache
+
+RUN chmod -R 777 storage bootstrap/cache
 
 # PHP deps
 RUN composer install --no-dev --optimize-autoloader

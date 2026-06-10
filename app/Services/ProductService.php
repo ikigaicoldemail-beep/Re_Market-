@@ -18,7 +18,8 @@ use Illuminate\Validation\ValidationException;
 class ProductService
 {
     public function __construct(
-        private readonly ImageVariantService $imageVariants = new ImageVariantService()
+        private readonly ImageVariantService $imageVariants = new ImageVariantService(),
+        private readonly VisualSearchService $visualSearch = new VisualSearchService()
     ) {}
 
     public function listPublic(array $filters): LengthAwarePaginator
@@ -298,6 +299,8 @@ class ProductService
     public function delete(Product $product): void
     {
         DB::transaction(function () use ($product) {
+            $this->visualSearch->removeProduct($product);
+
             foreach ($product->images as $image) {
                 Storage::disk($image->disk)->delete($image->path);
                 $this->imageVariants->delete($image->disk, $image->variants);
@@ -350,7 +353,15 @@ class ProductService
             }
         });
 
-        return $product->fresh(['images', 'store', 'category', 'brand', 'condition', 'user.profile']);
+        $product = $product->fresh(['images', 'store', 'category', 'brand', 'condition', 'user.profile']);
+
+        try {
+            $this->visualSearch->indexProduct($product);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $product;
     }
 
     private function resolveUniqueSlug(string $value, ?int $ignoreId = null): string

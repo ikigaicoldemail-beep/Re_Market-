@@ -19,7 +19,7 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30', 'unique:users,phone'],
-            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()->symbols()],
+            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'role' => ['nullable', 'string', 'in:user,admin'],
             'admin_key' => [
                 'required_if:role,admin',

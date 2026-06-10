@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Middleware\EnsureAccountIsActive;
-use App\Http\Middleware\EnsureEmailIsVerifiedForMarketplace;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\LogApiActivity;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -30,7 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'activity.log' => LogApiActivity::class,
             'account.active' => EnsureAccountIsActive::class,
-            'email.verified.marketplace' => EnsureEmailIsVerifiedForMarketplace::class,
             'role' => EnsureUserHasRole::class,
         ]);
     })

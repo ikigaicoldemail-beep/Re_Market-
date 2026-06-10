@@ -40,6 +40,7 @@ class ProductResource extends JsonResource
             'similarity_score' => $this->when(isset($this->similarity_score), $this->similarity_score),
             'reviews_count' => $this->when(isset($this->reviews_count), $this->reviews_count),
             'reviews_avg_rating' => $this->when(isset($this->reviews_avg_rating), round((float) $this->reviews_avg_rating, 2)),
+            'similarity' => $this->when($this->getAttribute('visual_similarity') !== null, $this->getAttribute('visual_similarity')),
             'images' => ProductImageResource::collection($this->whenLoaded('images')),
             'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
             'store' => new StoreResource($this->whenLoaded('store')),

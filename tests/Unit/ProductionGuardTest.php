@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Integrations\Ai\FakeImageEmbeddingClient;
 use App\Integrations\Social\FacebookSocialClient;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
@@ -15,6 +16,15 @@ class ProductionGuardTest extends TestCase
         app()->detectEnvironment(fn () => 'testing');
 
         parent::tearDown();
+    }
+
+    public function test_fake_ai_client_is_blocked_in_production(): void
+    {
+        app()->detectEnvironment(fn () => 'production');
+
+        $this->expectException(RuntimeException::class);
+
+        (new FakeImageEmbeddingClient)->embedFromPath(__FILE__);
     }
 
     public function test_placeholder_social_client_is_blocked_in_production(): void

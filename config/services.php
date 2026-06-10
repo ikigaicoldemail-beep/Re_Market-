@@ -57,4 +57,12 @@ return [
         'redirect' => env('TIKTOK_REDIRECT_URI'),
     ],
 
+    'visual_search' => [
+        'python' => env('VISUAL_SEARCH_PYTHON', 'python3'),
+        'model' => env('VISUAL_SEARCH_MODEL', 'ViT-B-32'),
+        'pretrained' => env('VISUAL_SEARCH_PRETRAINED', 'laion2b_s34b_b79k'),
+        'device' => env('VISUAL_SEARCH_DEVICE', 'cpu'),
+        'timeout' => env('VISUAL_SEARCH_TIMEOUT', 900),
+    ],
+
 ];

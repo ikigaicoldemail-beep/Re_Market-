@@ -16,7 +16,7 @@ class ShareProductRequest extends FormRequest
     {
         return [
             'product_id' => ['required', 'integer', 'exists:products,id'],
-            'platform' => ['nullable', Rule::in(['facebook'])],
+            'platform' => ['nullable', Rule::in(['facebook', 'tiktok'])],
             'destination' => ['nullable', 'string', 'max:255'],
         ];
     }
