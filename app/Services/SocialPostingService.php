@@ -7,6 +7,8 @@ use App\Models\SharedProduct;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -14,19 +16,21 @@ class SocialPostingService
 {
     public function __construct(private readonly SocialPlatformManager $platformManager) {}
 
-    public function createPost(User $user, Product $product, ?SocialAccount $account, array $data): SocialPost
+    public function createPost(User $user, Product $product, SocialAccount $account, array $data): SocialPost
     {
         $this->assertProductOwnership($user, $product);
 
-        if ($account) {
+        if ($account->platform === 'facebook') {
+            $account = $this->resolveMarketplaceFacebookAccount();
+        } else {
             $this->assertAccountOwnership($user, $account);
         }
 
         $post = SocialPost::create([
             'user_id' => $user->id,
             'product_id' => $product->id,
-            'social_account_id' => $account?->id,
-            'platform' => $account?->platform ?? $data['platform'] ?? 'facebook',
+            'social_account_id' => $account->id,
+            'platform' => $account->platform,
             'caption' => $data['caption'] ?? $this->defaultCaption($product),
             'media_payload' => array_merge(
                 $this->resolveImagePayload($product),
@@ -40,7 +44,14 @@ class SocialPostingService
         ]);
 
         if (($data['publish_now'] ?? false) === true) {
-            $this->publish($post);
+            try {
+                $this->publish($post);
+            } catch (\Throwable $e) {
+                Log::warning('Synchronous social publish failed; post left in failed state.', [
+                    'post_id' => $post->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $post->fresh(['product.images', 'socialAccount']);
@@ -54,8 +65,14 @@ class SocialPostingService
             return $post;
         }
 
-        // Simulated provider publish for classroom scope. Re-resolve the primary image first
-        // so the stored social post still reflects the final product listing.
+        if (! $post->socialAccount || $post->socialAccount->status !== 'active') {
+            throw ValidationException::withMessages([
+                'social_account_id' => ['The social account is not active.'],
+            ]);
+        }
+
+        // Auto-posts can be queued before the separate image-upload request
+        // finishes. Re-resolve the primary image now if the payload is missing it.
         if ($post->product) {
             $payload = $post->media_payload ?? [];
             $hasImage = ! empty($payload['image_path']) && ! empty($payload['image_disk']);
@@ -68,16 +85,26 @@ class SocialPostingService
             }
         }
 
-        $post->update([
-            'status' => 'posted',
-            'provider_post_id' => 'simulated-facebook-'.$post->id,
-            'provider_response' => [
-                'simulated' => true,
-                'platform' => $post->platform,
-            ],
-            'error_message' => null,
-            'posted_at' => now(),
-        ]);
+        $post->update(['status' => 'processing', 'error_message' => null]);
+
+        try {
+            $client = $this->platformManager->forPlatform($post->platform);
+            $result = $client->publish($post->socialAccount, $post);
+
+            $post->update([
+                'status' => 'posted',
+                'provider_post_id' => $result['provider_post_id'] ?? null,
+                'provider_response' => $result['response'] ?? [],
+                'posted_at' => now(),
+            ]);
+        } catch (\Throwable $throwable) {
+            $post->update([
+                'status' => 'failed',
+                'error_message' => $throwable->getMessage(),
+            ]);
+
+            throw $throwable;
+        }
 
         return $post->fresh(['product.images', 'socialAccount']);
     }
@@ -124,8 +151,8 @@ class SocialPostingService
         $post = SocialPost::create([
             'user_id' => $user->id,
             'product_id' => $product->id,
-            'social_account_id' => $account?->id,
-            'platform' => $account?->platform ?? 'facebook',
+            'social_account_id' => $account->id,
+            'platform' => $account->platform,
             'caption' => $data['caption'] ?? $this->defaultCaption($product),
             'media_payload' => array_merge(
                 $this->resolveImagePayload($product),
@@ -149,15 +176,44 @@ class SocialPostingService
         return $scheduledPost->load(['socialPost.product.images', 'socialPost.socialAccount']);
     }
 
-    private function getTargetAccount(User $user, array $data): ?SocialAccount
+    private function getTargetAccount(User $user, array $data): SocialAccount
     {
-        if (($data['post_to'] ?? 'marketplace') === 'user_account' && ! empty($data['social_account_id'])) {
+        if (($data['post_to'] ?? 'marketplace') === 'user_account') {
             $account = SocialAccount::findOrFail($data['social_account_id']);
             $this->assertAccountOwnership($user, $account);
             return $account;
         }
 
-        return null;
+        return $this->resolveMarketplaceFacebookAccount();
+    }
+
+    private function resolveMarketplaceFacebookAccount(): SocialAccount
+    {
+        $accountId = config('services.facebook.marketplace_social_account_id');
+
+        if (! $accountId) {
+            throw ValidationException::withMessages([
+                'social_account_id' => ['Marketplace Facebook account is not configured.'],
+            ]);
+        }
+
+        try {
+            $account = SocialAccount::whereKey($accountId)
+                ->where('platform', 'facebook')
+                ->firstOrFail();
+        } catch (ModelNotFoundException) {
+            throw ValidationException::withMessages([
+                'social_account_id' => ['Configured marketplace Facebook account was not found.'],
+            ]);
+        }
+
+        if ($account->status !== 'active') {
+            throw ValidationException::withMessages([
+                'social_account_id' => ['Marketplace account is not connected or active.'],
+            ]);
+        }
+
+        return $account;
     }
 
     public static function defaultCaption(Product $product): string

@@ -8,6 +8,7 @@ use Composer\CaBundle\CaBundle;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -35,8 +36,8 @@ class SocialAccountService
                 [
                     'user_id' => $user->id,
                     'provider_account_name' => $data['provider_account_name'] ?? null,
-                    'access_token' => $data['access_token'],
-                    'refresh_token' => $data['refresh_token'] ?? null,
+                    'access_token' => Crypt::encryptString($data['access_token']),
+                    'refresh_token' => isset($data['refresh_token']) ? Crypt::encryptString($data['refresh_token']) : null,
                     'token_expires_at' => $data['token_expires_at'] ?? null,
                     'scopes' => $data['scopes'] ?? [],
                     'status' => 'active',

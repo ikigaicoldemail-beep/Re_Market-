@@ -40,7 +40,7 @@
         <div class="grid md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Price (in cents) *</label>
-                <input type="number" min="1" x-model.number="form.price_amount" required
+                <input type="number" min="0" x-model.number="form.price_amount" required
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <p class="text-xs text-gray-500 mt-1">e.g. 1500 = $15.00</p>
             </div>
@@ -111,7 +111,7 @@
                                 class="sm:col-span-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <input type="text" x-model="v.sku" placeholder="SKU (optional)"
                                 class="sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <input type="number" min="1" x-model.number="v.price_amount" placeholder="Price (cents)"
+                            <input type="number" min="0" x-model.number="v.price_amount" placeholder="Price (cents)"
                                 class="sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <input type="number" min="0" x-model.number="v.stock_quantity" placeholder="Stock"
                                 class="sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -200,8 +200,8 @@
             <label class="flex items-start gap-2 text-sm mb-3">
                 <input type="checkbox" x-model="autoPostEnabled" class="mt-1">
                 <span>
-                    <span class="font-medium">Auto-post to Facebook when published</span>
-                    <span class="block text-xs text-gray-500">Creates a Facebook post for this listing after it has a product image.</span>
+                    <span class="font-medium">Auto-post to social when published</span>
+                    <span class="block text-xs text-gray-500">Automatically posts this product to your connected social accounts.</span>
                 </span>
             </label>
 
@@ -211,6 +211,7 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="facebook">Facebook</option>
                 </select>
+                <p class="text-xs text-gray-400 mt-1">TikTok is pending platform review.</p>
             </div>
 
             <label class="flex items-start gap-2 text-sm">

@@ -12,6 +12,7 @@ use App\Http\Requests\Social\ScheduleProductPostRequest;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\ScheduledPostResource;
 use App\Http\Resources\StoreResource;
+use App\Models\Conversation;
 use App\Models\Product;
 use App\Models\Store;
 use App\Services\ProductService;
@@ -139,6 +140,8 @@ class ProductController extends Controller
     {
         $products = $this->productService->listForStore($store);
 
+        $store->loadMissing('user');
+
         return response()->json([
             'store' => new StoreResource($store),
             'products' => ProductResource::collection($products),
@@ -168,9 +171,13 @@ class ProductController extends Controller
             return response()->json(['eligible' => true, 'reason' => '']);
         }
 
+        $hasConversation = Conversation::where('product_id', $product->id)
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $user->id))
+            ->exists();
+
         return response()->json([
-            'eligible' => true,
-            'reason' => '',
+            'eligible' => $hasConversation,
+            'reason' => $hasConversation ? '' : 'Chat with the seller about this item first to leave a review.',
         ]);
     }
 

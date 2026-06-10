@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductReviewResource;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductReview;
 use App\Notifications\NewReview;
@@ -58,13 +59,24 @@ class ProductReviewController extends Controller
         ]);
     }
 
-    /** User creates one review for a product. */
+    /** Buyer creates a review for a product they purchased. */
     public function store(Request $request, Product $product): JsonResponse
     {
         $user = $request->user();
 
         if ($product->user_id === $user->id) {
             abort(422, 'You cannot review your own product.');
+        }
+
+        $eligibleOrderId = Order::query()
+            ->where('buyer_id', $user->id)
+            ->where('payment_status', 'paid')
+            ->whereHas('items', fn ($q) => $q->where('product_id', $product->id))
+            ->latest()
+            ->value('id');
+
+        if (! $eligibleOrderId) {
+            abort(403, 'Only buyers who have purchased this product can leave a review.');
         }
 
         if (ProductReview::where('product_id', $product->id)->where('user_id', $user->id)->exists()) {
@@ -80,6 +92,7 @@ class ProductReviewController extends Controller
         $review = ProductReview::create([
             'product_id' => $product->id,
             'user_id' => $user->id,
+            'order_id' => $eligibleOrderId,
             'rating' => $data['rating'],
             'title' => $data['title'] ?? null,
             'body' => $data['body'] ?? null,

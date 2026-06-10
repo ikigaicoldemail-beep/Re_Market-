@@ -14,4 +14,13 @@ fi
 mkdir -p storage bootstrap/cache database
 chmod -R ug+rwX storage bootstrap/cache database || true
 
+# Ensure public/storage resolves *inside* the container. A storage link created
+# on the Windows host (junction / git-bash symlink) points at a host path like
+# /mnt/host/c/... that does not exist here, so it dangles and every /storage/*
+# request 404/403s. Force a relative symlink that resolves in both worlds.
+if [ ! -d public/storage ]; then
+  rm -f public/storage
+  ln -s ../storage/app/public public/storage
+fi
+
 exec "$@"

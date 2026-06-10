@@ -49,7 +49,7 @@
                     class="w-full h-full object-cover">
             </div>
             <div class="grid grid-cols-5 gap-2 mt-3" x-show="product?.images?.length > 1" style="display:none">
-                <template x-for="img in product.images" :key="img.id">
+                <template x-for="img in (product?.images || [])" :key="img.id">
                     <button @click="setActive(img)"
                         :class="activeImage === heroSrc(img) ? 'ring-2 ring-indigo-600' : 'ring-1 ring-gray-200'"
                         class="aspect-square bg-white rounded-lg overflow-hidden">
@@ -197,6 +197,13 @@
                         <span data-i18n="product.share">Share</span>
                     </button>
                 </div>
+
+                {{-- Find visually similar (promoted to button) --}}
+                <button @click="findSimilar({ force: true, scroll: true, redirectGuest: true })"
+                    class="w-full border border-indigo-300 text-indigo-600 py-2.5 rounded-lg font-medium hover:bg-indigo-50 transition inline-flex items-center justify-center gap-2">
+                    <x-heroicon-o-camera class="w-4 h-4"/>
+                    <span data-i18n="product.find_similar">Find visually similar</span>
+                </button>
 
                 {{-- Compare (demoted to text link) --}}
                 <div class="text-center">
@@ -369,6 +376,64 @@
         </div>
     </div>
 
+    {{-- Similar products section --}}
+    <div x-show="product && !loading" x-ref="similarSection" class="mt-12" style="display:none">
+        <div class="flex items-center justify-between gap-4 mb-4">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900" data-i18n="product.similar_title">Visually similar products</h2>
+                <p class="text-sm text-gray-500 mt-1">More listings that match this item by image, category, condition, and price.</p>
+            </div>
+            <button @click="findSimilar({ force: true, redirectGuest: true })" :disabled="similarLoading"
+                class="shrink-0 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50">
+                <span x-text="similarLoading ? 'Searching...' : 'Refresh'"></span>
+            </button>
+        </div>
+
+        <div x-show="similarLoading" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <template x-for="i in 5" :key="i">
+                <div class="animate-pulse">
+                    <div class="aspect-square bg-gray-100 rounded-lg"></div>
+                    <div class="h-4 bg-gray-100 rounded mt-3"></div>
+                    <div class="h-4 bg-gray-100 rounded mt-2 w-2/3"></div>
+                </div>
+            </template>
+        </div>
+
+        <div x-show="!similarLoading && similarError" class="bg-white border border-gray-200 rounded-lg p-6 text-center text-sm text-gray-500" style="display:none">
+            <p x-text="similarError"></p>
+            <a x-show="!window.auth.isLoggedIn()" :href="'/login?next=' + encodeURIComponent(window.location.pathname)"
+                class="inline-flex mt-3 text-indigo-600 font-medium hover:text-indigo-700" style="display:none">
+                Sign in
+            </a>
+        </div>
+
+        <div x-show="!similarLoading && !similarError && similarChecked && similarProducts.length === 0"
+            class="bg-white border border-gray-200 rounded-lg p-6 text-center text-sm text-gray-500" style="display:none">
+            No similar products found yet.
+        </div>
+
+        <div x-show="!similarLoading && similarProducts.length > 0"
+            class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" style="display:none">
+            <template x-for="p in similarProducts" :key="p.id">
+                <a :href="'/products/' + p.id" class="block group bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-indigo-200 hover:shadow-sm transition">
+                    <div class="aspect-square bg-gray-100 overflow-hidden">
+                        <img :src="similarPrimaryImage(p)"
+                            onerror="this.src='https://placehold.co/300x300/e5e7eb/9ca3af?text=No+Image'"
+                            class="w-full h-full object-cover group-hover:scale-105 transition">
+                    </div>
+                    <div class="p-3">
+                        <p class="text-sm font-medium text-gray-900 line-clamp-2 min-h-[2.5rem]" x-text="p.title"></p>
+                        <div class="flex items-center justify-between gap-2 mt-2">
+                            <p class="text-sm font-bold text-indigo-600" x-text="formatPrice(p.price_amount, p.currency)"></p>
+                            <span x-show="p.similarity_score" class="text-[11px] text-gray-500"
+                                x-text="Math.round((p.similarity_score || 0) * 100) + '%'"></span>
+                        </div>
+                    </div>
+                </a>
+            </template>
+        </div>
+    </div>
+
     {{-- Report modal --}}
     <div x-show="showReport" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
          @click.self="showReport = false" style="display:none">
@@ -444,6 +509,10 @@
             sharingPlatform: false,
             shareUrl: '',
             messagingSeller: false,
+            similarLoading: false,
+            similarChecked: false,
+            similarError: '',
+            similarProducts: [],
             showReport: false,
             reportReasons: [],
             reportForm: { reason: '', details: '' },
@@ -463,6 +532,7 @@
                     this.checkWishlist(),
                     this.fetchReviews(),
                     this.checkReviewEligibility(),
+                    this.findSimilar(),
                 ]);
             },
             get canWriteReview() {
@@ -470,6 +540,9 @@
             },
             get hasSpecs() {
                 return this.product?.specs && typeof this.product.specs === 'object' && Object.keys(this.product.specs).length > 0;
+            },
+            get hasProductImages() {
+                return Array.isArray(this.product?.images) && this.product.images.length > 0;
             },
             get specEntries() {
                 return this.product?.specs ? Object.entries(this.product.specs) : [];
@@ -529,7 +602,7 @@
                 try {
                     const { data } = await window.api.get('/products/' + this.productId);
                     this.product = data.product;
-                    const imgs = this.product.images || [];
+                    const imgs = this.product?.images || [];
                     const primary = imgs.length > 0 ? (imgs.find(i => i.is_primary) || imgs[0]) : null;
                     this.activeImage = primary ? this.heroSrc(primary)
                         : 'https://placehold.co/600x600/e5e7eb/9ca3af?text=No+Image';
@@ -589,6 +662,60 @@
             },
             setActive(img) {
                 this.activeImage = this.heroSrc(img);
+            },
+            similarPrimaryImage(p) {
+                if (p.images && p.images.length > 0) {
+                    const primary = p.images.find(i => i.is_primary) || p.images[0];
+                    return primary.urls?.card_webp || primary.urls?.card || primary.url;
+                }
+                return 'https://placehold.co/300x300/e5e7eb/9ca3af?text=No+Image';
+            },
+            async findSimilar(options = {}) {
+                if (!this.product) return;
+                if (!this.hasProductImages) {
+                    this.similarChecked = true;
+                    this.similarProducts = [];
+                    this.similarError = 'Add at least one product image to find similar items.';
+                    return;
+                }
+
+                if (!window.auth.isLoggedIn()) {
+                    if (options.redirectGuest) {
+                        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                        return;
+                    }
+
+                    this.similarChecked = true;
+                    this.similarError = 'Sign in to see visually similar products.';
+                    return;
+                }
+
+                if (options.scroll) {
+                    this.$nextTick(() => this.$refs.similarSection?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                }
+
+                if (this.similarProducts.length > 0 && !options.force) return;
+                this.similarLoading = true;
+                this.similarChecked = false;
+                this.similarError = '';
+                try {
+                    const { data } = await window.api.post('/ai/similarity-search', {
+                        product_id: this.product.id,
+                        top_k: 20,
+                    });
+                    this.similarProducts = (data.products || []).filter(p => p.id !== this.product.id);
+                } catch (e) {
+                    const message = window.extractApiError(e);
+                    this.similarError = e?.response?.status === 422
+                        ? 'Similar items are not ready for this listing yet.'
+                        : message;
+                    if (options.force) {
+                        window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: this.similarError } }));
+                    }
+                } finally {
+                    this.similarChecked = true;
+                    this.similarLoading = false;
+                }
             },
             async fetchReviews() {
                 try {

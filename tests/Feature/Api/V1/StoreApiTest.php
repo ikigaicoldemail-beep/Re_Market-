@@ -12,6 +12,62 @@ class StoreApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_public_store_search_matches_slug(): void
+    {
+        Store::factory()->create([
+            'name' => 'Demo store 168',
+            'slug' => 'demo-store-168',
+            'status' => 'active',
+        ]);
+
+        $response = $this->getJson('/api/v1/stores?search=demo-store-168&per_page=1');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1, 'stores')
+            ->assertJsonPath('stores.0.slug', 'demo-store-168');
+    }
+
+    public function test_stores_can_be_sorted_by_distance_from_a_point(): void
+    {
+        // Reference point: central Phnom Penh.
+        $lat = 11.5564;
+        $lng = 104.9282;
+
+        Store::factory()->create(['name' => 'Far Shop', 'status' => 'active', 'latitude' => 13.3614, 'longitude' => 103.8597]); // Siem Reap ~230km
+        Store::factory()->create(['name' => 'Near Shop', 'status' => 'active', 'latitude' => 11.5600, 'longitude' => 104.9300]); // ~0.5km
+        Store::factory()->create(['name' => 'Mid Shop', 'status' => 'active', 'latitude' => 11.7000, 'longitude' => 105.0000]); // ~17km
+
+        $response = $this->getJson("/api/v1/stores?sort=nearest&lat={$lat}&lng={$lng}");
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(3, 'stores')
+            ->assertJsonPath('stores.0.name', 'Near Shop')
+            ->assertJsonPath('stores.1.name', 'Mid Shop')
+            ->assertJsonPath('stores.2.name', 'Far Shop');
+
+        $distances = array_column($response->json('stores'), 'distance_km');
+        $this->assertLessThan(2, $distances[0]);
+        $this->assertEqualsWithDelta($distances, array_values(collect($distances)->sort()->all()), 0.0001);
+    }
+
+    public function test_stores_can_be_filtered_by_radius(): void
+    {
+        $lat = 11.5564;
+        $lng = 104.9282;
+
+        Store::factory()->create(['name' => 'Near Shop', 'status' => 'active', 'latitude' => 11.5600, 'longitude' => 104.9300]);
+        Store::factory()->create(['name' => 'Far Shop', 'status' => 'active', 'latitude' => 13.3614, 'longitude' => 103.8597]);
+
+        $response = $this->getJson("/api/v1/stores?lat={$lat}&lng={$lng}&radius_km=50&sort=nearest");
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1, 'stores')
+            ->assertJsonPath('stores.0.name', 'Near Shop');
+    }
+
     public function test_admin_can_list_all_seller_stores(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

@@ -34,6 +34,10 @@ class StoreResource extends JsonResource
             'address_line' => $this->address_line,
             'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
             'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
+            'distance_km' => $this->when(
+                isset($this->distance_km) && $this->distance_km !== null,
+                fn () => round((float) $this->distance_km, 1)
+            ),
             'status' => $this->status,
             'is_verified' => $this->is_verified,
             'followers_count' => (int) ($this->followers_count ?? 0),

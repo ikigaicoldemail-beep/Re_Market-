@@ -8,7 +8,7 @@
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="socialAccounts()" x-init="init">
     <h1 class="text-2xl font-semibold text-gray-900 mb-2">Social Accounts</h1>
-    <p class="text-sm text-gray-500 mb-2">Connect Facebook to auto-post and schedule product listings.</p>
+    <p class="text-sm text-gray-500 mb-2">Connect Facebook or TikTok to auto-post and schedule product listings.</p>
 
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-xs text-blue-800">
         <p class="font-medium mb-1">How Facebook Page posting works</p>
@@ -17,7 +17,7 @@
 
     <div x-show="loading" class="text-center py-20 text-gray-500">Loading...</div>
 
-    <div x-show="!loading" class="max-w-md mb-8" style="display:none">
+    <div x-show="!loading" class="grid md:grid-cols-2 gap-4 mb-8" style="display:none">
         {{-- Facebook card --}}
         <div class="bg-white rounded-xl border border-gray-200 p-6">
             <div class="flex items-center gap-3 mb-3">
@@ -47,6 +47,22 @@
             </button>
         </div>
 
+        {{-- TikTok card (disabled — TikTok review requires a demo video first) --}}
+        <div class="bg-white rounded-xl border border-gray-200 p-6 opacity-60 relative">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-bold">T</div>
+                <div>
+                    <h2 class="font-semibold text-gray-900">TikTok</h2>
+                    <p class="text-xs text-gray-500">Coming soon</p>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mb-3">
+                TikTok integration is pending platform review. Use Facebook for auto-posting in the meantime.
+            </p>
+            <button disabled class="w-full bg-gray-300 text-white py-2 rounded-lg text-sm font-medium cursor-not-allowed">
+                Unavailable
+            </button>
+        </div>
     </div>
 
     {{-- Manual connect modal (fallback) --}}
@@ -112,6 +128,7 @@
                 return c.length === 0 ? 'Not connected' : c.length + ' account(s) connected';
             },
             ttStatus() {
+                const c = this.connectedFor('tiktok');
                 return c.length === 0 ? 'Not connected' : c.length + ' account(s) connected';
             },
             async fetch() {

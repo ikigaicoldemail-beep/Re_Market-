@@ -186,8 +186,7 @@
                         window.api.get('/social/accounts'),
                     ]);
                     this.myProducts = productsRes.data.products || [];
-                    this.mySocialAccounts = (accountsRes.data.social_accounts || [])
-                        .filter(account => account.platform === 'facebook');
+                    this.mySocialAccounts = accountsRes.data.social_accounts || [];
                 } catch (e) {
                     window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: window.extractApiError(e) } }));
                 }

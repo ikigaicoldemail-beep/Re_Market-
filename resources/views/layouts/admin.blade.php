@@ -19,6 +19,7 @@
             ['route' => 'admin.users',      'label' => 'Users',      'svg' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-5.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/>'],
             ['route' => 'admin.stores',     'label' => 'Stores',     'svg' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18l-2 13H5L3 3zm6 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0z"/>'],
             ['route' => 'admin.products',   'label' => 'Products',   'svg' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>'],
+            ['route' => 'admin.orders',     'label' => 'Orders',     'svg' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>'],
             ['route' => 'admin.categories', 'label' => 'Categories', 'svg' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>'],
             ['route' => 'admin.brands',     'label' => 'Brands',     'svg' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>'],
             ['route' => 'admin.banners',    'label' => 'Promo Banners', 'svg' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>'],
@@ -34,8 +35,9 @@
         <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
                class="fixed lg:static inset-y-0 left-0 w-64 bg-white border-r border-gray-200 z-40 transform transition-transform duration-200 flex flex-col">
             <div class="h-14 flex items-center gap-2 px-4 border-b border-gray-200 shrink-0">
-                <a href="{{ route('admin.index') }}" class="flex items-center" aria-label="Second Market admin">
-                    <img src="{{ asset('images/logo_secondMarket_nav.png') }}" alt="Second Market" class="h-9 w-auto object-contain">
+                <a href="{{ route('admin.index') }}" class="flex items-center gap-2">
+                    <span class="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center font-semibold">R</span>
+                    <span class="font-semibold text-gray-900">Admin</span>
                 </a>
                 <button @click="sidebarOpen = false" class="ml-auto lg:hidden p-1 text-gray-400 hover:text-gray-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>

@@ -209,7 +209,7 @@ class CambodiaMarketplaceSeeder extends Seeder
 
         $p = $this->makeProduct($techHub, $catElec, $cLikeNew, $brands['tcl'], [
             'title'        => 'TCL Smart TV 43" 4K Android',
-            'description'  => '43-inch 4K Smart TV with Android. Netflix, YouTube, and streaming apps built in. Remote and original stand included. Moving sale.',
+            'description'  => '43-inch 4K Smart TV with Android. Netflix, YouTube, TikTok built-in. Remote and original stand included. Moving sale.',
             'price_amount' => $this->usd(195),
             'location_city' => 'Phnom Penh',
             'specs'        => ['Screen' => '43 inch', 'Resolution' => '4K UHD', 'OS' => 'Android TV', 'HDR' => 'Yes'],
@@ -313,7 +313,7 @@ class CambodiaMarketplaceSeeder extends Seeder
         $mekongHome = $this->makeStore($sreymom, [
             'name'        => 'Mekong Home & Living',
             'slug'        => 'mekong-home-living',
-            'description' => 'Affordable household items and appliances in Phnom Penh. Message the seller for pickup details.',
+            'description' => 'Affordable household items and appliances in Phnom Penh. Free delivery within Phnom Penh for orders $50+.',
             'city'        => 'Phnom Penh',
             'state'       => 'Phnom Penh',
         ]);

@@ -182,22 +182,7 @@
                 });
                 return payload;
             },
-            validateBeforeSubmit() {
-                if (this.autoPostEnabled && this.mode === 'create' && this.pendingImages.length === 0) {
-                    window.dispatchEvent(new CustomEvent('toast', {
-                        detail: {
-                            type: 'error',
-                            message: 'Add at least one product image before enabling Facebook auto-post.',
-                        },
-                    }));
-                    return false;
-                }
-
-                return true;
-            },
             async submit() {
-                if (!this.validateBeforeSubmit()) return;
-
                 this.saving = true;
                 try {
                     const payload = this.buildPayload();

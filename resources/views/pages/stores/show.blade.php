@@ -46,6 +46,27 @@
                             <span class="font-semibold text-white" x-text="store?.followers_count ?? 0"></span> follower<span x-show="(store?.followers_count ?? 0) !== 1" style="display:none">s</span>
                         </p>
                     </div>
+                    <div x-show="isOwnStore" class="flex flex-wrap gap-2" style="display:none">
+                        <a href="/me/products/new"
+                            class="text-sm font-medium px-5 py-2 rounded-lg transition bg-white text-indigo-700 hover:bg-indigo-50 inline-flex items-center gap-1.5">
+                            <x-heroicon-o-plus class="w-4 h-4"/>
+                            Add item
+                        </a>
+                        <a href="/social/scheduled-posts"
+                            class="text-sm font-medium px-5 py-2 rounded-lg transition bg-white/15 text-white hover:bg-white/25 inline-flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+                            </svg>
+                            Add post
+                        </a>
+                        <a href="/me/store"
+                            class="text-sm font-medium px-5 py-2 rounded-lg transition bg-white/15 text-white hover:bg-white/25 inline-flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Edit store
+                        </a>
+                    </div>
                     <div x-show="canFollow" style="display:none">
                         <button @click="toggleFollow()" :disabled="followBusy"
                             :class="store?.is_following ? 'bg-white/15 hover:bg-white/25' : 'bg-white text-indigo-700 hover:bg-indigo-50'"
@@ -95,12 +116,12 @@
         <div x-show="store?.latitude && store?.longitude" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6" style="display:none">
             <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3" data-i18n="stores.location">Location</h2>
             <div class="rounded-xl overflow-hidden border border-gray-200 bg-white">
-                <iframe :src="'https://www.google.com/maps?q=' + store.latitude + ',' + store.longitude + '&z=16&output=embed'"
+                <iframe :src="'https://www.google.com/maps?q=' + store?.latitude + ',' + store?.longitude + '&z=16&output=embed'"
                     width="100%" height="320" frameborder="0" loading="lazy"
                     referrerpolicy="no-referrer-when-downgrade"></iframe>
                 <div class="px-4 py-2 text-xs text-gray-500 border-t border-gray-100 flex items-center justify-between">
-                    <span x-text="(store.address_line || '') + (store.address_line && store.city ? ' · ' : '') + (store.city || '')"></span>
-                    <a :href="'https://www.google.com/maps/dir/?api=1&destination=' + store.latitude + ',' + store.longitude" target="_blank" rel="noopener"
+                    <span x-text="(store?.address_line || '') + (store?.address_line && store?.city ? ' · ' : '') + (store?.city || '')"></span>
+                    <a :href="'https://www.google.com/maps/dir/?api=1&destination=' + store?.latitude + ',' + store?.longitude" target="_blank" rel="noopener"
                         class="text-indigo-600 hover:text-indigo-700 font-medium" data-i18n="stores.get_directions">Get directions →</a>
                 </div>
             </div>
@@ -165,6 +186,10 @@
             loading: true,
             error: '',
             followBusy: false,
+            get isOwnStore() {
+                const me = window.auth.user();
+                return !!me && this.store && me.id === this.store?.seller?.id;
+            },
             get canFollow() {
                 const me = window.auth.user();
                 return !!me && this.store && me.id !== this.store?.seller?.id;
@@ -177,8 +202,37 @@
                 return 'https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image';
             },
             async init() {
+                const routeStoreId = @json($id);
+                if (routeStoreId) {
+                    this.storeId = Number(routeStoreId);
+                    await this.fetch();
+                    return;
+                }
+
                 const segments = window.location.pathname.split('/').filter(Boolean);
-                this.storeId = segments[segments.length - 1];
+                const last = segments[segments.length - 1];
+                const parsed = parseInt(last);
+                if (!Number.isNaN(parsed)) {
+                    this.storeId = parsed;
+                } else {
+                    // last segment is likely a slug; try searching stores by name/slug
+                    try {
+                        const { data } = await window.api.get('/stores', { params: { search: last, per_page: 1 } });
+                        const found = (data.stores || [])[0] || null;
+                        if (found) {
+                            this.storeId = found.id;
+                        } else {
+                            this.error = 'Store not found.';
+                            this.loading = false;
+                            return;
+                        }
+                    } catch (e) {
+                        this.error = window.extractApiError(e) || 'Store not found.';
+                        this.loading = false;
+                        return;
+                    }
+                }
+
                 await this.fetch();
             },
             async fetch() {

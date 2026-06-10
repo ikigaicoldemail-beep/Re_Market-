@@ -37,6 +37,7 @@ class ProductResource extends JsonResource
             'schedule_at' => $this->schedule_at,
             'auto_post' => $this->auto_post,
             'published_at' => $this->published_at,
+            'similarity_score' => $this->when(isset($this->similarity_score), $this->similarity_score),
             'reviews_count' => $this->when(isset($this->reviews_count), $this->reviews_count),
             'reviews_avg_rating' => $this->when(isset($this->reviews_avg_rating), round((float) $this->reviews_avg_rating, 2)),
             'images' => ProductImageResource::collection($this->whenLoaded('images')),

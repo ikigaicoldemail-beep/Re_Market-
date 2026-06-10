@@ -32,6 +32,23 @@ document.addEventListener('alpine:init', () => {
         },
     });
 
+    Alpine.store('cart', {
+        count: 0,
+        async refresh() {
+            if (!window.auth.isLoggedIn()) {
+                this.count = 0;
+                return;
+            }
+            try {
+                const { data } = await window.api.get('/cart');
+                const items = data?.cart?.items || [];
+                this.count = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+            } catch {
+                this.count = 0;
+            }
+        },
+    });
+
     Alpine.store('compare', {
         ids: (() => {
             try {
@@ -94,6 +111,9 @@ document.addEventListener('alpine:init', () => {
 Alpine.start();
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (window.Alpine && Alpine.store('cart')) {
+        Alpine.store('cart').refresh();
+    }
     if (window.Alpine && Alpine.store('chat')) {
         Alpine.store('chat').refresh();
         setInterval(() => Alpine.store('chat').refresh(), 30000);

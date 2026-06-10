@@ -27,7 +27,22 @@
                     <option value="latest" class="text-gray-900" data-i18n="stores.sort_latest">Newest</option>
                     <option value="followers" class="text-gray-900" data-i18n="stores.sort_followers">Most followers</option>
                     <option value="name" class="text-gray-900" data-i18n="stores.sort_name">Name (A → Z)</option>
+                    <option value="nearest" class="text-gray-900">Nearest to me</option>
                 </select>
+            </div>
+
+            {{-- Near me --}}
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                <button type="button" @click="nearMe ? clearNearMe() : enableNearMe()" :disabled="locating"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition disabled:opacity-60"
+                    :class="nearMe ? 'bg-white text-indigo-700 border-white shadow-sm' : 'bg-white/15 text-white border-white/25 hover:bg-white/25'">
+                    <svg class="w-4 h-4" :class="locating && 'animate-pulse'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span x-text="locating ? 'Finding your location…' : (nearMe ? 'Showing nearby — clear' : 'Stores near me')"></span>
+                </button>
+                <span x-show="nearMe" class="text-sm text-indigo-100" style="display:none">Sorted by distance from your location.</span>
             </div>
         </div>
     </div>
@@ -73,6 +88,13 @@
                             </svg>
                         </h3>
                         <p class="text-xs text-gray-500 mt-0.5" x-show="store.city || store.country_code" x-text="[store.city, store.country_code].filter(Boolean).join(', ')" style="display:none"></p>
+                        <p class="text-xs font-medium text-indigo-600 mt-1 inline-flex items-center gap-1" x-show="store.distance_km != null" style="display:none">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <span x-text="formatDistance(store.distance_km)"></span>
+                        </p>
                         <p class="text-sm text-gray-600 mt-2 line-clamp-2 min-h-[2.5rem]" x-text="store.description || 'No description.'"></p>
                         <div class="flex items-center gap-4 mt-3 text-xs text-gray-500">
                             <span><strong class="text-gray-900" x-text="store.products_count ?? 0"></strong> product<span x-show="(store.products_count ?? 0) !== 1" style="display:none">s</span></span>
@@ -104,13 +126,56 @@
             meta: { current_page: 1, last_page: 1, total: 0 },
             page: 1,
             loading: true,
-            filters: { search: '', city: '', sort: 'latest' },
+            locating: false,
+            nearMe: false,
+            filters: { search: '', city: '', sort: 'latest', lat: null, lng: null },
             async init() {
                 await this.fetch();
             },
             applyFilters() {
                 this.page = 1;
+                // Picking "Nearest to me" without a location yet → ask for it first.
+                if (this.filters.sort === 'nearest' && this.filters.lat == null) {
+                    this.enableNearMe();
+                    return;
+                }
                 this.fetch();
+            },
+            enableNearMe() {
+                if (!navigator.geolocation) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: 'Your browser does not support location.' } }));
+                    return;
+                }
+                this.locating = true;
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        this.filters.lat = pos.coords.latitude;
+                        this.filters.lng = pos.coords.longitude;
+                        this.filters.sort = 'nearest';
+                        this.nearMe = true;
+                        this.locating = false;
+                        this.page = 1;
+                        this.fetch();
+                    },
+                    () => {
+                        this.locating = false;
+                        if (this.filters.sort === 'nearest') this.filters.sort = 'latest';
+                        window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: 'Could not get your location. Please allow location access and try again.' } }));
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                );
+            },
+            clearNearMe() {
+                this.nearMe = false;
+                this.filters.lat = null;
+                this.filters.lng = null;
+                if (this.filters.sort === 'nearest') this.filters.sort = 'latest';
+                this.page = 1;
+                this.fetch();
+            },
+            formatDistance(km) {
+                if (km == null) return '';
+                return km < 1 ? `${Math.round(km * 1000)} m away` : `${km} km away`;
             },
             async fetch() {
                 this.loading = true;
@@ -118,6 +183,10 @@
                     const params = { page: this.page, sort: this.filters.sort };
                     if (this.filters.search) params.search = this.filters.search;
                     if (this.filters.city) params.city = this.filters.city;
+                    if (this.filters.lat != null && this.filters.lng != null) {
+                        params.lat = this.filters.lat;
+                        params.lng = this.filters.lng;
+                    }
                     const { data } = await window.api.get('/stores', { params });
                     this.stores = data.stores || [];
                     this.meta = data.meta || this.meta;

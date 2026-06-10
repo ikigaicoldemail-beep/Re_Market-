@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\ProductCreated;
+use App\Jobs\GenerateProductImageEmbeddingJob;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Store;
@@ -34,21 +35,19 @@ class ProductService
 
         if (! empty($filters['search'])) {
             $search = trim((string) $filters['search']);
-            if (mb_strlen($search) >= 3 && DB::connection()->getDriverName() === 'mysql') {
+            if (mb_strlen($search) >= 3) {
                 // FULLTEXT BOOLEAN MODE with wildcard suffix on each token for prefix matching.
                 $tokens = preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY);
                 $expr = collect($tokens)
                     ->map(fn ($t) => '+'.preg_replace('/[+\-><()~*"@]/u', '', $t).'*')
-                    ->filter(fn ($t) => $t !== '+*')
                     ->implode(' ');
-
-                if ($expr !== '') {
-                    $query->whereRaw('MATCH(title, description) AGAINST(? IN BOOLEAN MODE)', [$expr]);
-                } else {
-                    $this->applyLikeSearch($query, $search);
-                }
+                $query->whereRaw('MATCH(title, description) AGAINST(? IN BOOLEAN MODE)', [$expr]);
             } else {
-                $this->applyLikeSearch($query, $search);
+                $query->where(function ($builder) use ($search) {
+                    $builder
+                        ->where('title', 'like', '%'.$search.'%')
+                        ->orWhere('description', 'like', '%'.$search.'%');
+                });
             }
         }
 
@@ -339,12 +338,15 @@ class ProductService
                     'file_size' => $image->getSize(),
                     'sort_order' => $startingOrder + $index,
                     'is_primary' => ! $hasPrimary && $index === 0,
+                    'ai_embedding_status' => 'pending',
                 ]);
 
                 if ($productImage->is_primary) {
                     $product->image = $productImage->path;
                     $product->save();
                 }
+
+                GenerateProductImageEmbeddingJob::dispatch($productImage->id);
             }
         });
 
@@ -368,14 +370,5 @@ class ProductService
         }
 
         return $slug;
-    }
-
-    private function applyLikeSearch($query, string $search): void
-    {
-        $query->where(function ($builder) use ($search) {
-            $builder
-                ->where('title', 'like', '%'.$search.'%')
-                ->orWhere('description', 'like', '%'.$search.'%');
-        });
     }
 }
