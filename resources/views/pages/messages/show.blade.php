@@ -110,9 +110,12 @@
                                     ? 'bg-indigo-600 text-white rounded-2xl rounded-br-sm'
                                     : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm border border-gray-100'"
                                 class="px-3.5 py-2.5 shadow-sm">
-                                <template x-if="msg.attachment_url">
-                                    <a :href="msg.attachment_url" target="_blank" class="block mb-1">
-                                        <img :src="msg.attachment_url" class="rounded-xl max-h-64 w-auto object-cover">
+                                <template x-if="attachmentUrl(msg)">
+                                    <a :href="attachmentUrl(msg)" target="_blank" class="block mb-1">
+                                        <img :src="attachmentUrl(msg)"
+                                            class="rounded-xl w-full max-w-xs sm:max-w-sm max-h-72 object-cover bg-indigo-500/20"
+                                            loading="lazy"
+                                            x-on:error="$event.target.closest('a')?.classList.add('hidden')">
                                     </a>
                                 </template>
                                 <p class="text-sm leading-relaxed whitespace-pre-line break-words"
@@ -401,6 +404,13 @@
                 if (!imgs || !imgs.length) return null;
                 const primary = imgs.find(i => i.is_primary) || imgs[0];
                 return primary?.urls?.thumb_webp || primary?.urls?.thumb || primary?.url || null;
+            },
+
+            attachmentUrl(msg) {
+                if (!msg) return null;
+                if (msg.attachment_url) return msg.attachment_url;
+                if (!msg.attachment_path) return null;
+                return '/storage/' + String(msg.attachment_path).replace(/^\/+/, '');
             },
 
             formatTime(ts) {
