@@ -10,6 +10,7 @@ This setup gives you:
 - MySQL container
 - queue worker container
 - scheduler container
+- OpenCLIP + FAISS visual search runtime
 - a safe way to run Artisan and tests without local PHP
 
 ## Files added
@@ -47,7 +48,9 @@ Copy-Item .env.example .env
 docker compose build
 ```
 
-### 3. Install dependencies inside container
+The first build installs PHP, Composer dependencies, Python visual-search dependencies, and CPU OpenCLIP/Torch packages.
+
+### 3. Install PHP dependencies inside container
 
 ```powershell
 docker compose run --rm app composer install
@@ -80,6 +83,37 @@ docker compose up -d app queue scheduler
 The API will be available at:
 
 - `http://localhost:8000`
+
+### 8. Build frontend assets
+
+```powershell
+npm install
+npm run build
+```
+
+For active frontend development, run Vite on the host:
+
+```powershell
+npm run dev
+```
+
+### 9. Warm and build visual search
+
+Visual search uses OpenCLIP `ViT-B-32` with `openai` weights and FAISS.
+
+The first command downloads the CLIP weights into Docker named volumes (`huggingface_cache`, `torch_cache`). This can take several minutes once:
+
+```powershell
+docker compose exec app python3 -c "import open_clip; m, _, _ = open_clip.create_model_and_transforms('ViT-B-32', pretrained='openai', device='cpu'); print(m.visual.output_dim)"
+```
+
+Then build the product image index:
+
+```powershell
+docker compose exec app php artisan visual-search:generate-embeddings
+```
+
+Run this again after large imports, reseeding, or changing the embedding model/pretrained weights.
 
 ## Useful commands
 
@@ -119,6 +153,12 @@ docker compose run --rm app php artisan test
 docker compose run --rm app php artisan route:list
 ```
 
+### Rebuild visual search index
+
+```powershell
+docker compose exec app php artisan visual-search:generate-embeddings
+```
+
 ### Stop everything
 
 ```powershell
@@ -145,9 +185,33 @@ MySQL is exposed to the host on:
 
 - `localhost:33061`
 
+## Visual search environment
+
+The Compose file sets these for `app`, `queue`, and `scheduler`:
+
+- `VISUAL_SEARCH_PYTHON=python3`
+- `VISUAL_SEARCH_MODEL=ViT-B-32`
+- `VISUAL_SEARCH_PRETRAINED=openai`
+- `VISUAL_SEARCH_DEVICE=cpu`
+- `VISUAL_SEARCH_TIMEOUT=900`
+- `HF_HOME=/var/www/.cache/huggingface`
+- `TORCH_HOME=/var/www/.cache/torch`
+
+Model downloads are persisted in named volumes:
+
+- `huggingface_cache`
+- `torch_cache`
+
+The FAISS index is stored in:
+
+- `storage/app/visual-search/faiss.index`
+
+Because the project directory is bind-mounted into Docker, this index persists locally with the repo workspace.
+
 ## Notes
 
 - the entrypoint auto-copies `.env.example` to `.env` if needed
 - the entrypoint auto-runs `composer install` if `vendor/` is missing
 - queue and scheduler are separate containers so async features work locally
 - tests run inside the app container and do not require local Windows PHP
+- OpenCLIP is CPU-only by default for portability; set `VISUAL_SEARCH_DEVICE=cuda` only in a CUDA-ready image

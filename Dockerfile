@@ -2,6 +2,14 @@ FROM php:8.2-cli-bookworm
 
 WORKDIR /app
 
+ENV HF_HOME=/app/storage/app/model-cache/huggingface \
+    TORCH_HOME=/app/storage/app/model-cache/torch \
+    VISUAL_SEARCH_PYTHON=python3 \
+    VISUAL_SEARCH_MODEL=ViT-B-32 \
+    VISUAL_SEARCH_PRETRAINED=openai \
+    VISUAL_SEARCH_DEVICE=cpu \
+    VISUAL_SEARCH_TIMEOUT=900
+
 # System deps
 RUN apt-get update && apt-get install -y \
     git \
@@ -33,6 +41,8 @@ RUN pip3 install --break-system-packages --no-cache-dir -r scripts/requirements-
 RUN mkdir -p storage/framework/cache \
     storage/framework/sessions \
     storage/framework/views \
+    storage/app/model-cache/huggingface \
+    storage/app/model-cache/torch \
     bootstrap/cache
 
 RUN chmod -R 777 storage bootstrap/cache

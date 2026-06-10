@@ -15,10 +15,10 @@
 
     <div x-show="store && !loading" style="display:none">
         {{-- Banner --}}
-        <div class="relative h-40 sm:h-56 bg-gradient-to-br from-indigo-600 to-purple-600 overflow-hidden">
-            <template x-if="store?.banner_url">
-                <img :src="store.banner_url" :alt="store.name + ' banner'" class="absolute inset-0 w-full h-full object-cover">
-            </template>
+        <div x-show="store?.banner_url"
+            class="relative h-40 sm:h-56 bg-gradient-to-br from-indigo-600 to-purple-600 overflow-hidden"
+            style="display:none">
+            <img :src="store?.banner_url" :alt="store?.name + ' banner'" class="absolute inset-0 w-full h-full object-cover">
             <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
         </div>
 
@@ -114,15 +114,37 @@
 
         {{-- Map --}}
         <div x-show="store?.latitude && store?.longitude" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6" style="display:none">
-            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3" data-i18n="stores.location">Location</h2>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                <div>
+                    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide" data-i18n="stores.location">Location</h2>
+                    <p class="text-xs text-gray-500 mt-1">This map shows the store address. Use the buttons to navigate or search nearby shops.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a :href="'https://www.google.com/maps/dir/?api=1&destination=' + store?.latitude + ',' + store?.longitude"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">
+                        <x-heroicon-o-map-pin class="w-4 h-4"/>
+                        Directions
+                    </a>
+                    <button type="button"
+                        @click="openNearbyPicker()"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 transition">
+                        <x-heroicon-o-magnifying-glass class="w-4 h-4"/>
+                        Stores near me
+                    </button>
+                </div>
+            </div>
             <div class="rounded-xl overflow-hidden border border-gray-200 bg-white">
-                <iframe :src="'https://www.google.com/maps?q=' + store?.latitude + ',' + store?.longitude + '&z=16&output=embed'"
-                    width="100%" height="320" frameborder="0" loading="lazy"
-                    referrerpolicy="no-referrer-when-downgrade"></iframe>
+                <div x-ref="storeMap" class="h-80 w-full bg-gray-100"></div>
                 <div class="px-4 py-2 text-xs text-gray-500 border-t border-gray-100 flex items-center justify-between">
                     <span x-text="(store?.address_line || '') + (store?.address_line && store?.city ? ' · ' : '') + (store?.city || '')"></span>
-                    <a :href="'https://www.google.com/maps/dir/?api=1&destination=' + store?.latitude + ',' + store?.longitude" target="_blank" rel="noopener"
-                        class="text-indigo-600 hover:text-indigo-700 font-medium" data-i18n="stores.get_directions">Get directions →</a>
+                    <div class="flex items-center gap-3">
+                        <a :href="openStreetMapUrl()" target="_blank" rel="noopener"
+                            class="text-gray-600 hover:text-gray-900 font-medium">Open map</a>
+                        <a :href="'https://www.google.com/maps/dir/?api=1&destination=' + store?.latitude + ',' + store?.longitude" target="_blank" rel="noopener"
+                            class="text-indigo-600 hover:text-indigo-700 font-medium" data-i18n="stores.get_directions">Get directions →</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -186,6 +208,8 @@
             loading: true,
             error: '',
             followBusy: false,
+            storeMap: null,
+            storeMarker: null,
             get isOwnStore() {
                 const me = window.auth.user();
                 return !!me && this.store && me.id === this.store?.seller?.id;
@@ -242,6 +266,7 @@
                     this.store = data.store;
                     this.products = data.products || [];
                     this.meta = data.meta || this.meta;
+                    this.$nextTick(() => this.initStoreMap());
                 } catch (e) {
                     this.error = window.extractApiError(e) || 'Store not found.';
                 } finally {
@@ -271,6 +296,45 @@
                 } finally {
                     this.followBusy = false;
                 }
+            },
+            openNearbyPicker() {
+                window.location.href = '/stores?near_me=1';
+            },
+            initStoreMap() {
+                if (!window.L || !this.$refs.storeMap || !this.store?.latitude || !this.store?.longitude) {
+                    return;
+                }
+
+                const position = [Number(this.store.latitude), Number(this.store.longitude)];
+                if (this.storeMap) {
+                    this.storeMap.setView(position, 15);
+                    this.storeMarker?.setLatLng(position);
+                    setTimeout(() => this.storeMap.invalidateSize(), 50);
+                    return;
+                }
+
+                this.storeMap = window.L.map(this.$refs.storeMap, {
+                    center: position,
+                    zoom: 15,
+                    scrollWheelZoom: false,
+                });
+                window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors',
+                }).addTo(this.storeMap);
+                this.storeMarker = window.L.marker(position, {
+                    title: this.store.name || 'Store location',
+                }).addTo(this.storeMap);
+                setTimeout(() => this.storeMap.invalidateSize(), 50);
+            },
+            openStreetMapUrl() {
+                if (!this.store?.latitude || !this.store?.longitude) {
+                    return 'https://www.openstreetmap.org';
+                }
+
+                const lat = Number(this.store.latitude);
+                const lng = Number(this.store.longitude);
+                return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`;
             },
         };
     }

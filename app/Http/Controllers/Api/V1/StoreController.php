@@ -32,6 +32,17 @@ class StoreController extends Controller
         $lng = $filters['lng'] ?? null;
         $hasGeo = $lat !== null && $lng !== null;
         $radius = $filters['radius_km'] ?? null;
+        $boundingBox = null;
+        if ($hasGeo && $radius !== null) {
+            $latDelta = (float) $radius / 111.0;
+            $lngDelta = (float) $radius / max(cos(deg2rad((float) $lat)) * 111.0, 0.0001);
+            $boundingBox = [
+                'min_lat' => (float) $lat - $latDelta,
+                'max_lat' => (float) $lat + $latDelta,
+                'min_lng' => (float) $lng - $lngDelta,
+                'max_lng' => (float) $lng + $lngDelta,
+            ];
+        }
 
         // "nearest" only makes sense with coordinates; otherwise fall back to latest.
         $sort = $filters['sort'] ?? 'latest';
@@ -57,6 +68,9 @@ class StoreController extends Controller
                 ->whereNotNull('latitude')
                 ->whereNotNull('longitude')
                 ->selectRaw("$distanceSql as distance_km", $distanceBindings))
+            ->when($boundingBox !== null, fn ($q) => $q
+                ->whereBetween('latitude', [$boundingBox['min_lat'], $boundingBox['max_lat']])
+                ->whereBetween('longitude', [$boundingBox['min_lng'], $boundingBox['max_lng']]))
             ->when($hasGeo && $radius !== null, fn ($q) => $q
                 ->whereRaw("$distanceSql <= ?", [...$distanceBindings, $radius]))
             ->when($filters['search'] ?? null, function ($q, $search) {

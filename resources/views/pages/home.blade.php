@@ -52,27 +52,27 @@
     </div>
 
     {{-- Brand bar --}}
-    <div x-show="brands.length > 0" class="mb-6" style="display:none">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide" data-i18n="home.shop_by_brand">Shop by brand</h2>
+    <div x-show="brands.length > 0" class="mb-4" style="display:none">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-[13px] font-semibold text-gray-700 uppercase tracking-wide" data-i18n="home.shop_by_brand">Shop by brand</h2>
             <button x-show="filters.brand_id" @click="selectBrand('')"
                 class="text-xs text-indigo-600 hover:text-indigo-700 font-medium" data-i18n="home.all_brands" style="display:none">
                 All brands
             </button>
         </div>
-        <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+        <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             <template x-for="b in brands" :key="b.id">
                 <button @click="selectBrand(b.id)"
-                    :class="filters.brand_id == b.id ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'hover:bg-gray-50'"
-                    class="shrink-0 w-24 text-center p-2 rounded-xl border border-gray-200 bg-white transition">
+                    :class="filters.brand_id == b.id ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-200 hover:bg-indigo-50/40'"
+                    class="shrink-0 h-9 px-3 rounded-full border transition inline-flex items-center gap-2">
                     <template x-if="b.logo_url">
-                        <img :src="b.logo_url" :alt="b.name" class="w-12 h-12 mx-auto rounded-lg object-contain bg-white">
+                        <img :src="b.logo_url" :alt="b.name" class="w-5 h-5 rounded-full object-contain bg-white">
                     </template>
                     <template x-if="!b.logo_url">
-                        <div class="w-12 h-12 mx-auto rounded-lg bg-gradient-to-br from-indigo-100 to-pink-100 flex items-center justify-center text-indigo-600 font-bold"
-                             x-text="b.name.charAt(0)"></div>
+                        <span class="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] text-indigo-600 font-bold"
+                             x-text="b.name.charAt(0)"></span>
                     </template>
-                    <p class="text-xs font-medium text-gray-700 mt-1 truncate" x-text="b.name"></p>
+                    <span class="text-sm font-medium whitespace-nowrap" x-text="b.name"></span>
                 </button>
             </template>
         </div>
@@ -117,66 +117,73 @@
     </div>
 
     {{-- Featured Shops --}}
-    <div class="mb-8">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <x-heroicon-o-building-storefront class="w-5 h-5 text-indigo-500"/>
+    <div class="mb-5">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <x-heroicon-o-building-storefront class="w-4 h-4 text-indigo-500"/>
                 <span>Shops</span>
             </h2>
             <a href="{{ route('stores.index') }}" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">View all</a>
         </div>
         {{-- Skeleton shown while loading --}}
-        <div x-show="shops.length === 0" class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1" style="display:none">
+        <div x-show="shops.length === 0" class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style="display:none">
             <template x-for="i in [1,2,3,4,5,6]" :key="i">
-                <div class="shrink-0 w-36 rounded-xl border border-gray-100 bg-gray-100 p-3 flex flex-col items-center animate-pulse">
-                    <div class="w-14 h-14 rounded-full bg-gray-200 mb-2"></div>
-                    <div class="h-2.5 bg-gray-200 rounded w-20 mb-1"></div>
-                    <div class="h-2 bg-gray-200 rounded w-14"></div>
+                <div class="shrink-0 w-56 h-14 rounded-lg border border-gray-100 bg-gray-100 px-3 flex items-center gap-3 animate-pulse">
+                    <div class="w-9 h-9 rounded-full bg-gray-200"></div>
+                    <div class="space-y-1.5">
+                        <div class="h-2.5 bg-gray-200 rounded w-24"></div>
+                        <div class="h-2 bg-gray-200 rounded w-16"></div>
+                    </div>
                 </div>
             </template>
         </div>
-        <div x-show="shops.length > 0" class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x" style="display:none">
+        <div x-show="shops.length > 0" class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x" style="display:none">
             <template x-for="shop in shops" :key="'s-' + shop.id">
                 <a :href="'/stores/' + shop.slug"
-                    class="shrink-0 w-36 snap-start bg-white rounded-xl border border-gray-200 p-3 flex flex-col items-center text-center hover:shadow-md hover:border-indigo-200 transition group">
-                    <div class="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-indigo-100 to-pink-100 flex items-center justify-center mb-2 shrink-0">
+                    class="shrink-0 w-56 snap-start bg-white rounded-lg border border-gray-200 px-3 py-2 flex items-center gap-3 hover:shadow-sm hover:border-indigo-200 transition group">
+                    <div class="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-indigo-100 to-pink-100 flex items-center justify-center shrink-0">
                         <template x-if="shop.logo_url">
                             <img :src="shop.logo_url" :alt="shop.name" class="w-full h-full object-cover">
                         </template>
                         <template x-if="!shop.logo_url">
-                            <span class="text-xl font-bold text-indigo-500" x-text="shop.name.charAt(0).toUpperCase()"></span>
+                            <span class="text-sm font-bold text-indigo-500" x-text="shop.name.charAt(0).toUpperCase()"></span>
                         </template>
                     </div>
-                    <p class="text-xs font-semibold text-gray-900 line-clamp-2 leading-tight mb-0.5 group-hover:text-indigo-700 transition" x-text="shop.name"></p>
-                    <p class="text-[11px] text-gray-400 truncate w-full" x-text="shop.city || ''"></p>
-                    <p class="text-[11px] text-indigo-500 mt-0.5" x-text="(shop.products_count || 0) + ' listings'"></p>
+                    <div class="min-w-0 text-left">
+                        <p class="text-sm font-semibold text-gray-900 truncate group-hover:text-indigo-700 transition" x-text="shop.name"></p>
+                        <p class="text-xs text-gray-500 truncate">
+                            <span x-text="shop.city || 'Cambodia'"></span>
+                            <span class="text-gray-300 px-1">·</span>
+                            <span class="text-indigo-500" x-text="(shop.products_count || 0) + ' listings'"></span>
+                        </p>
+                    </div>
                 </a>
             </template>
         </div>
     </div>
 
     {{-- Top-level category cards (khmer24-style) --}}
-    <div class="mb-6" id="categories">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide" data-i18n="home.categories">Categories</h2>
+    <div class="mb-4" id="categories">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-[13px] font-semibold text-gray-700 uppercase tracking-wide" data-i18n="home.categories">Categories</h2>
             <button x-show="filters.category_id" @click="clearCategory()"
                 class="text-xs text-indigo-600 hover:text-indigo-700 font-medium" style="display:none">
                 Show all categories
             </button>
         </div>
-        <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+        <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             <template x-for="cat in parentCategories" :key="cat.id">
                 <button @click="selectParent(cat.id)"
-                    :class="filters.category_id == cat.id ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'hover:bg-gray-50'"
-                    class="shrink-0 w-24 text-center p-2 rounded-xl border border-gray-200 bg-white transition">
+                    :class="filters.category_id == cat.id ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-200 hover:bg-indigo-50/40'"
+                    class="shrink-0 h-9 px-3 rounded-full border transition inline-flex items-center gap-2 max-w-[180px]">
                     <template x-if="cat.logo_url">
-                        <img :src="cat.logo_url" :alt="cat.name" class="w-14 h-14 mx-auto rounded-full object-cover bg-gray-100">
+                        <img :src="cat.logo_url" :alt="cat.name" class="w-5 h-5 rounded-full object-cover bg-gray-100">
                     </template>
                     <template x-if="!cat.logo_url">
-                        <div class="w-14 h-14 mx-auto rounded-full bg-gradient-to-br from-indigo-100 to-pink-100 flex items-center justify-center text-indigo-600 font-semibold"
-                             x-text="cat.name.charAt(0)"></div>
+                        <span class="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] text-indigo-600 font-semibold"
+                             x-text="cat.name.charAt(0)"></span>
                     </template>
-                    <p class="text-xs font-medium text-gray-700 mt-1 truncate" x-text="cat.name"></p>
+                    <span class="text-sm font-medium truncate" x-text="cat.name"></span>
                 </button>
             </template>
         </div>
@@ -198,9 +205,9 @@
     </div>
 
     {{-- Province / city filter --}}
-    <div class="mb-6">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Province</h2>
+    <div class="mb-5">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-[13px] font-semibold text-gray-700 uppercase tracking-wide">Province</h2>
             <button x-show="filters.location_city" @click="selectCity('')"
                 class="text-xs text-indigo-600 hover:text-indigo-700 font-medium" style="display:none">
                 All provinces
@@ -342,7 +349,7 @@
                                 class="absolute bottom-2 right-2 px-1.5 py-1 rounded-full bg-amber-100 text-amber-700" style="display:none">
                                 <x-heroicon-s-fire class="w-3 h-3"/>
                             </span>
-                            <span x-show="product.similarity"
+                            <span x-show="product.similarity && product.similarity >= 0.35"
                                 class="absolute bottom-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-600 text-white" style="display:none"
                                 x-text="Math.round(product.similarity * 100) + '% match'"></span>
                         </div>
@@ -589,12 +596,12 @@
                         headers: { 'Content-Type': 'multipart/form-data' },
                     });
 
-                    this.products = data.products || [];
+                    this.products = (data.products || []).filter(product => !product.similarity || product.similarity >= 0.35);
                     this.meta = {
                         current_page: 1,
                         last_page: 1,
                         per_page: this.products.length,
-                        total: data.meta?.total ?? this.products.length,
+                        total: this.products.length,
                     };
                     this.visualSearchActive = true;
                     if (this.products.length === 0) {

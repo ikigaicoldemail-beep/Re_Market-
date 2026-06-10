@@ -2,6 +2,14 @@ FROM php:8.2-cli-bookworm
 
 WORKDIR /var/www/html
 
+ENV HF_HOME=/var/www/.cache/huggingface \
+    TORCH_HOME=/var/www/.cache/torch \
+    VISUAL_SEARCH_PYTHON=python3 \
+    VISUAL_SEARCH_MODEL=ViT-B-32 \
+    VISUAL_SEARCH_PRETRAINED=openai \
+    VISUAL_SEARCH_DEVICE=cpu \
+    VISUAL_SEARCH_TIMEOUT=900
+
 RUN apt-get update && apt-get install -y \
     git \
     unzip \

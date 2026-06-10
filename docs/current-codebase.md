@@ -223,23 +223,30 @@ Visual search is integrated into the marketplace API and home search UI.
 
 Current flow:
 
-- seller product image upload indexes the listing image through OpenCLIP + FAISS
+- seller product image upload indexes the listing image through OpenCLIP `ViT-B-32` + FAISS
 - `POST /api/search/visual` and `POST /api/v1/search/visual` accept multipart `image`
 - search results return regular product resources with a `similarity` score
 - FAISS vectors live in `storage/app/visual-search/faiss.index`
 - SQL only stores the lightweight `listing_visual_index` mapping from listing/image to FAISS id
+- CLIP concept filtering prevents obvious cross-type matches, for example phone queries returning laptops
+- Docker Compose persists model downloads in `huggingface_cache` and `torch_cache`
 
 Local AI dependencies:
 
 ```bash
-pip3 install -r scripts/requirements-visual-search.txt
+pip3 install --break-system-packages -r scripts/requirements-visual-search.txt
 ```
 
 Backfill/rebuild existing listings:
 
 ```bash
 php artisan visual-search:generate-embeddings
-python manage.py generate-embeddings
+```
+
+Docker:
+
+```bash
+docker compose exec app php artisan visual-search:generate-embeddings
 ```
 
 ## Production Notes

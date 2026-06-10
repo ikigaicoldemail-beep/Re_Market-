@@ -1,59 +1,91 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ReMarket
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Second-hand ecommerce marketplace built with Laravel, Alpine.js, MySQL, Docker, queues, scheduled jobs, chat, stores, product listings, and local/free visual search.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel 12 / PHP 8.2
+- MySQL 8.4
+- Alpine.js + Vite + Tailwind
+- Docker Compose for local development
+- OpenCLIP `ViT-B-32` + FAISS for visual search
+- Leaflet + OpenStreetMap for in-app maps
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Quick Start With Docker
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+cp .env.example .env
+docker compose build
+docker compose run --rm app composer install
+docker compose run --rm app php artisan key:generate --force
+docker compose run --rm app php artisan jwt:secret --force
+docker compose run --rm app php artisan migrate:fresh --seed
+docker compose up -d app queue scheduler
+npm install
+npm run build
+```
 
-## Learning Laravel
+Open:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```text
+http://localhost:8000
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Visual Search Setup
 
-## Laravel Sponsors
+Visual search is local and free. It uses OpenCLIP image embeddings plus FAISS.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Docker Compose already sets:
 
-### Premium Partners
+```env
+VISUAL_SEARCH_PYTHON=python3
+VISUAL_SEARCH_MODEL=ViT-B-32
+VISUAL_SEARCH_PRETRAINED=openai
+VISUAL_SEARCH_DEVICE=cpu
+VISUAL_SEARCH_TIMEOUT=900
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+The first OpenCLIP run downloads model weights. Warm the model once:
 
-## Contributing
+```bash
+docker compose exec app python3 -c "import open_clip; m, _, _ = open_clip.create_model_and_transforms('ViT-B-32', pretrained='openai', device='cpu'); print(m.visual.output_dim)"
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Then build/rebuild the FAISS index:
 
-## Code of Conduct
+```bash
+docker compose exec app php artisan visual-search:generate-embeddings
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Run that command after reseeding, bulk product imports, or changing `VISUAL_SEARCH_MODEL` / `VISUAL_SEARCH_PRETRAINED`.
 
-## Security Vulnerabilities
+## Useful Commands
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+docker compose ps
+docker compose logs -f app
+docker compose logs -f queue
+docker compose exec app php artisan test
+docker compose exec app php artisan route:list
+docker compose exec app php artisan visual-search:generate-embeddings
+```
 
-## License
+## Deployment Notes
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- Use the root `Dockerfile` for deploy builds.
+- Run a real queue worker in production; visual search and social jobs depend on queues.
+- Run Laravel scheduler as a separate process/container.
+- Persist `storage/app/public` for uploaded images.
+- Persist `storage/app/visual-search/faiss.index` or rebuild it after deploy.
+- Persist OpenCLIP model cache if possible:
+  - `HF_HOME`
+  - `TORCH_HOME`
+- Keep `VISUAL_SEARCH_DEVICE=cpu` unless your deploy image has CUDA support.
+- Run `php artisan visual-search:generate-embeddings` after production imports or model changes.
+
+More detail:
+
+- [Docker local development](docs/docker-local-development.md)
+- [Visual search with OpenCLIP](docs/visual-search-openclip.md)
+- [Current codebase notes](docs/current-codebase.md)
+- [Deployment checklist](docs/deployment.md)

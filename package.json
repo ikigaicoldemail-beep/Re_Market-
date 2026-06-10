@@ -17,6 +17,7 @@
     "dependencies": {
         "alpinejs": "^3.14.1",
         "laravel-echo": "^2.3.4",
+        "leaflet": "^1.9.4",
         "pusher-js": "^8.5.0"
     }
 }

@@ -20,7 +20,53 @@ class CambodiaMarketplaceSeeder extends Seeder
 
     private function img(string $seed): string
     {
-        return "https://picsum.photos/seed/{$seed}/600/600";
+        $keywords = [
+            'iphone-13-kh' => 'iphone,smartphone',
+            'iphone-13-back' => 'iphone,phone',
+            'samsung-a54-kh' => 'samsung,smartphone',
+            'xiaomi-note12-kh' => 'xiaomi,smartphone',
+            'dell-laptop-kh' => 'dell,laptop',
+            'dell-laptop-open' => 'laptop,computer',
+            'tcl-tv-kh' => 'television,screen',
+            'jbl-speaker-kh' => 'speaker,bluetooth',
+            'anker-powerbank-kh' => 'powerbank,battery',
+            'honda-wave-kh' => 'motorbike,scooter',
+            'honda-click-kh' => 'scooter,motorbike',
+            'yamaha-exciter-kh' => 'motorcycle,sportbike',
+            'electric-scooter-kh' => 'electric,scooter',
+            'motorcycle-helmet-kh' => 'motorcycle,helmet',
+            'giant-bike-kh' => 'mountain,bike',
+            'adidas-ultraboost-kh' => 'running,shoes',
+            'khmer-sampot-silk' => 'silk,skirt',
+            'krama-scarf-kh' => 'scarf,textile',
+            'batik-shirt-kh' => 'linen,shirt',
+            'khmer-dress-tep' => 'traditional,dress',
+            'school-uniform-kh' => 'school,uniform',
+            'hitachi-rice-cooker' => 'rice,cooker',
+            'panasonic-fan-kh' => 'electric,fan',
+            'samsung-fridge-kh' => 'refrigerator,fridge',
+            'lg-washer-kh' => 'washing,machine',
+            'bamboo-sofa-kh' => 'sofa,furniture',
+            'khmer-ceramic-set' => 'ceramic,dishes',
+            'khmer-workbooks' => 'workbook,books',
+            'english-textbook-kh' => 'textbook,english',
+            'khmer-history-book' => 'history,book',
+            'khmer-folk-tales' => 'children,book',
+            'khmer-dictionary' => 'dictionary,book',
+            'badminton-racket-kh' => 'badminton,racket',
+            'badminton-victor-kh' => 'badminton,racket',
+            'nike-football-kh' => 'football,boots',
+            'speedo-goggles-kh' => 'swimming,goggles',
+            'dumbbell-set-kh' => 'dumbbell,fitness',
+            'kids-scooter-kh' => 'kids,scooter',
+            'yoga-mat-kh' => 'yoga,mat',
+            'honda-wave-side' => 'motorbike,scooter',
+        ];
+
+        $query = $keywords[$seed] ?? str_replace('-', ',', preg_replace('/-kh$/', '', $seed));
+        $lock = sprintf('%u', crc32($seed));
+
+        return "https://loremflickr.com/600/600/{$query}?lock={$lock}";
     }
 
     private function usd(float $dollars): int
@@ -57,7 +103,7 @@ class CambodiaMarketplaceSeeder extends Seeder
 
     private function makeStore(User $seller, array $attrs): Store
     {
-        $store = Store::firstOrCreate(
+        $store = Store::updateOrCreate(
             ['slug' => $attrs['slug']],
             array_merge([
                 'user_id'       => $seller->id,
@@ -108,12 +154,12 @@ class CambodiaMarketplaceSeeder extends Seeder
     private function addImage(Product $product, string $seed, bool $primary = false): void
     {
         $url = $this->img($seed);
-        ProductImage::firstOrCreate(
-            ['product_id' => $product->id, 'path' => $url],
+        ProductImage::updateOrCreate(
+            ['product_id' => $product->id, 'sort_order' => $primary ? 0 : 1],
             [
+                'path'       => $url,
                 'disk'       => 'external',
                 'is_primary' => $primary,
-                'sort_order' => $primary ? 0 : 1,
                 'mime_type'  => 'image/jpeg',
             ]
         );
@@ -167,6 +213,8 @@ class CambodiaMarketplaceSeeder extends Seeder
             'description' => 'Quality second-hand electronics in Phnom Penh. All items tested before listing.',
             'city'        => 'Phnom Penh',
             'state'       => 'Phnom Penh',
+            'latitude'    => 11.5564,
+            'longitude'   => 104.9282,
         ]);
 
         $p = $this->makeProduct($techHub, $catElec, $cLikeNew, $brands['apple'], [
@@ -245,6 +293,8 @@ class CambodiaMarketplaceSeeder extends Seeder
             'description' => 'Authentic Khmer traditional wear and modern fashion from Siem Reap. Wholesale available.',
             'city'        => 'Siem Reap',
             'state'       => 'Siem Reap',
+            'latitude'    => 13.3671,
+            'longitude'   => 103.8448,
         ]);
 
         $p = $this->makeProduct($angkorFashion, $catCrafts, $cNew, null, [
@@ -316,6 +366,8 @@ class CambodiaMarketplaceSeeder extends Seeder
             'description' => 'Affordable household items and appliances in Phnom Penh. Free delivery within Phnom Penh for orders $50+.',
             'city'        => 'Phnom Penh',
             'state'       => 'Phnom Penh',
+            'latitude'    => 11.5789,
+            'longitude'   => 104.9009,
         ]);
 
         $p = $this->makeProduct($mekongHome, $catHome, $cGood, $brands['hitachi'], [
@@ -383,6 +435,8 @@ class CambodiaMarketplaceSeeder extends Seeder
             'description' => 'Trusted motorcycle and vehicle dealer in Battambang. All bikes inspected and serviced before listing.',
             'city'        => 'Battambang',
             'state'       => 'Battambang',
+            'latitude'    => 13.0957,
+            'longitude'   => 103.2022,
         ]);
 
         $p = $this->makeProduct($bayonMotors, $catMoto, $cLikeNew, $brands['honda'], [
@@ -451,6 +505,8 @@ class CambodiaMarketplaceSeeder extends Seeder
             'description' => 'New and used books in Khmer and English. Educational materials, history, culture, and children\'s books. Based in Kampong Cham.',
             'city'        => 'Kampong Cham',
             'state'       => 'Kampong Cham',
+            'latitude'    => 12.0000,
+            'longitude'   => 105.4500,
         ]);
 
         $p = $this->makeProduct($kampucheaBooks, $catBooks, $cNew, null, [
@@ -512,6 +568,8 @@ class CambodiaMarketplaceSeeder extends Seeder
             'description' => 'Sports gear and fitness equipment in Phnom Penh. New and used items at fair prices. All items are clean and in good condition.',
             'city'        => 'Phnom Penh',
             'state'       => 'Phnom Penh',
+            'latitude'    => 11.5449,
+            'longitude'   => 104.8922,
         ]);
 
         $p = $this->makeProduct($activeKH, $catSports, $cNew, null, [

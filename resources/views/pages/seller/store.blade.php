@@ -164,16 +164,14 @@
                         </button>
                     </div>
                     <div class="grid md:grid-cols-2 gap-4">
-                        <input type="number" step="0.0000001" x-model.number="form.latitude" placeholder="Latitude (e.g. 11.5564)"
+                        <input type="number" step="0.0000001" x-model.number="form.latitude" @input.debounce.300ms="syncStoreEditorMap(true)" placeholder="Latitude (e.g. 11.5564)"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <input type="number" step="0.0000001" x-model.number="form.longitude" placeholder="Longitude (e.g. 104.9282)"
+                        <input type="number" step="0.0000001" x-model.number="form.longitude" @input.debounce.300ms="syncStoreEditorMap(true)" placeholder="Longitude (e.g. 104.9282)"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Right-click a spot on Google Maps and paste the coordinates, or click "Use my location".</p>
-                    <div x-show="form.latitude && form.longitude" class="mt-3 rounded-lg overflow-hidden border border-gray-200" style="display:none">
-                        <iframe :src="'https://www.google.com/maps?q=' + form.latitude + ',' + form.longitude + '&z=16&output=embed'"
-                            width="100%" height="220" frameborder="0" loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    <p class="text-xs text-gray-500 mt-1">Click the map, drag the pin, type coordinates, or click "Use my location".</p>
+                    <div class="mt-3 rounded-lg overflow-hidden border border-gray-200">
+                        <div x-ref="storeEditorMap" class="h-56 w-full bg-gray-100"></div>
                     </div>
                 </div>
 
@@ -216,6 +214,8 @@
                 logo_url: null, banner_url: null,
             },
             locatingMe: false,
+            storeEditorMap: null,
+            storeEditorMarker: null,
             useMyLocation() {
                 if (!navigator.geolocation) {
                     window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: 'Geolocation not available in this browser.' } }));
@@ -226,6 +226,7 @@
                     (pos) => {
                         this.form.latitude = Number(pos.coords.latitude.toFixed(7));
                         this.form.longitude = Number(pos.coords.longitude.toFixed(7));
+                        this.syncStoreEditorMap(true);
                         this.locatingMe = false;
                     },
                     (err) => {
@@ -268,6 +269,7 @@
                     }
                 } finally {
                     this.loading = false;
+                    this.$nextTick(() => this.initStoreEditorMap());
                 }
             },
             populateForm(store) {
@@ -294,6 +296,73 @@
                 this.bannerFile = null;
                 this.bannerPreview = store.banner_url || null;
                 this.removeBannerFlag = false;
+                this.$nextTick(() => this.syncStoreEditorMap(true));
+            },
+            initStoreEditorMap() {
+                if (!window.L || !this.$refs.storeEditorMap) {
+                    return;
+                }
+
+                const position = this.currentEditorMapPosition();
+                if (this.storeEditorMap) {
+                    this.syncStoreEditorMap(false);
+                    setTimeout(() => this.storeEditorMap.invalidateSize(), 50);
+                    return;
+                }
+
+                this.storeEditorMap = window.L.map(this.$refs.storeEditorMap, {
+                    center: position,
+                    zoom: this.hasCoordinates() ? 15 : 7,
+                    scrollWheelZoom: false,
+                });
+                window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors',
+                }).addTo(this.storeEditorMap);
+                this.storeEditorMarker = window.L.marker(position, {
+                    draggable: true,
+                    title: 'Store location',
+                }).addTo(this.storeEditorMap);
+
+                this.storeEditorMap.on('click', (event) => {
+                    this.setStoreEditorLocation(event.latlng.lat, event.latlng.lng, true);
+                });
+                this.storeEditorMarker.on('dragend', (event) => {
+                    const position = event.target.getLatLng();
+                    this.setStoreEditorLocation(position.lat, position.lng, false);
+                });
+                setTimeout(() => this.storeEditorMap.invalidateSize(), 50);
+            },
+            hasCoordinates() {
+                return this.form.latitude !== '' && this.form.longitude !== ''
+                    && Number.isFinite(Number(this.form.latitude))
+                    && Number.isFinite(Number(this.form.longitude));
+            },
+            currentEditorMapPosition() {
+                if (this.hasCoordinates()) {
+                    return [Number(this.form.latitude), Number(this.form.longitude)];
+                }
+
+                return [11.5564, 104.9282];
+            },
+            setStoreEditorLocation(lat, lng, showToast = false) {
+                this.form.latitude = Number(lat.toFixed(7));
+                this.form.longitude = Number(lng.toFixed(7));
+                this.syncStoreEditorMap(false);
+                if (showToast) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Store map location updated.' } }));
+                }
+            },
+            syncStoreEditorMap(recenter = false) {
+                if (!this.storeEditorMap || !this.storeEditorMarker) {
+                    return;
+                }
+
+                const position = this.currentEditorMapPosition();
+                this.storeEditorMarker.setLatLng(position);
+                if (recenter) {
+                    this.storeEditorMap.setView(position, this.hasCoordinates() ? 15 : 7);
+                }
             },
             onLogoChange(e) {
                 const file = e.target.files?.[0];

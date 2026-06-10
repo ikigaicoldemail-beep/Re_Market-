@@ -20,11 +20,7 @@ class SocialPostingService
     {
         $this->assertProductOwnership($user, $product);
 
-        if ($account->platform === 'facebook') {
-            $account = $this->resolveMarketplaceFacebookAccount();
-        } else {
-            $this->assertAccountOwnership($user, $account);
-        }
+        $this->assertAccountOwnership($user, $account);
 
         $post = SocialPost::create([
             'user_id' => $user->id,

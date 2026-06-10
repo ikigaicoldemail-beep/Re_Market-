@@ -5,11 +5,11 @@ use App\Http\Controllers\Api\V1\ProductReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/me/products', [ProductController::class, 'myProducts']);
-Route::post('/products', [ProductController::class, 'store']);
+Route::post('/products', [ProductController::class, 'store'])->middleware('marketplace.verified');
 Route::post('/products/schedule-post', [ProductController::class, 'schedulePost']);
-Route::put('/products/{product}', [ProductController::class, 'update']);
-Route::delete('/products/{product}', [ProductController::class, 'destroy']);
-Route::post('/products/{product}/images', [ProductController::class, 'uploadImages']);
+Route::put('/products/{product}', [ProductController::class, 'update'])->middleware('marketplace.verified');
+Route::delete('/products/{product}', [ProductController::class, 'destroy'])->middleware('marketplace.verified');
+Route::post('/products/{product}/images', [ProductController::class, 'uploadImages'])->middleware('marketplace.verified');
 Route::post('/products/{product}/schedule-post', [ProductController::class, 'schedulePost']);
 
 Route::get('/products/{product}/review-eligibility', [ProductController::class, 'reviewEligibility']);
