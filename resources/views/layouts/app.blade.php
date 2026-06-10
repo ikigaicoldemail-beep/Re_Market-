@@ -53,7 +53,7 @@
             align-items: stretch;
             border: 1.5px solid #e0e7ff;
             border-radius: 8px;
-            overflow: hidden;
+            overflow: visible;
             transition: border-color .15s;
             background: #f9fafb;
         }
@@ -70,6 +70,7 @@
             outline: none;
             color: #111827;
             font-family: inherit;
+            border-radius: 7px 0 0 7px;
         }
         .rm-search input::placeholder { color: #9ca3af; }
         .rm-search button {
@@ -88,6 +89,9 @@
             transition: background .15s;
         }
         .rm-search button:hover { background: #4338ca; }
+        .rm-search .rm-search-submit {
+            border-radius: 0 7px 7px 0;
+        }
         .rm-vsearch-wrap {
             position: relative;
             display: flex;
@@ -549,7 +553,7 @@
                                @change="dispatchVisualFile($event)"
                                class="hidden">
                     </div>
-                    <button type="submit">
+                    <button type="submit" class="rm-search-submit">
                         <x-heroicon-o-magnifying-glass class="w-4 h-4"/>
                         <span class="hidden sm:inline" data-i18n="nav.search">Search</span>
                     </button>
