@@ -106,22 +106,28 @@
 
                         <div class="flex flex-col max-w-[75%]" :class="isMine(msg) ? 'items-end' : 'items-start'">
                             {{-- Bubble --}}
-                            <div :class="isMine(msg)
-                                    ? 'bg-indigo-600 text-white rounded-2xl rounded-br-sm'
-                                    : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm border border-gray-100'"
-                                class="px-3.5 py-2.5 shadow-sm">
+                            <div :class="[
+                                    isMine(msg)
+                                        ? 'bg-indigo-600 text-white rounded-2xl rounded-br-sm'
+                                        : 'bg-white text-gray-800 rounded-2xl rounded-bl-sm border border-gray-100',
+                                    attachmentUrl(msg) ? 'p-0 overflow-hidden' : 'px-3.5 py-2.5'
+                                ]"
+                                class="shadow-sm">
                                 <template x-if="attachmentUrl(msg)">
-                                    <a :href="attachmentUrl(msg)" target="_blank" class="block mb-1">
+                                    <a :href="attachmentUrl(msg)" target="_blank" class="block">
                                         <img :src="attachmentUrl(msg)"
-                                            class="rounded-xl w-full max-w-xs sm:max-w-sm max-h-72 object-cover bg-indigo-500/20"
+                                            class="block w-full max-w-xs sm:max-w-sm max-h-80 object-cover bg-black/5"
                                             loading="lazy"
                                             x-on:error="$event.target.closest('a')?.classList.add('hidden')">
                                     </a>
                                 </template>
                                 <p class="text-sm leading-relaxed whitespace-pre-line break-words"
+                                    :class="attachmentUrl(msg) ? 'px-3 pt-2 pb-0.5' : ''"
                                     x-show="msg.body && msg.body !== '[image]'"
                                     x-text="msg.body" style="display:none"></p>
-                                <p class="text-[10px] mt-1 opacity-60 text-right" x-text="formatTime(msg.sent_at)"></p>
+                                <p class="text-[10px] opacity-60 text-right"
+                                    :class="attachmentUrl(msg) ? 'px-3 pb-2 pt-0.5' : 'mt-1'"
+                                    x-text="formatTime(msg.sent_at)"></p>
                             </div>
 
                             {{-- Seen receipt for my last sent message --}}
