@@ -57,7 +57,6 @@ RUN npm ci && npm run build
 
 RUN chmod -R 777 storage bootstrap/cache
 
-CMD php artisan config:cache && \
-    php artisan route:cache && \
-    (php artisan migrate --force || echo 'migrate skipped (DB not reachable yet)') && \
+CMD php artisan config:clear; \
+    php artisan migrate --force || true; \
     php artisan serve --host=0.0.0.0 --port=$PORT
