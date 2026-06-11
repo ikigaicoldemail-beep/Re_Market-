@@ -63,4 +63,5 @@ RUN chmod -R 777 storage bootstrap/cache
 CMD php artisan config:clear || true; \
     php artisan storage:link || true; \
     (php artisan migrate --force || true) & \
+    (sleep 25 && php artisan visual-search:generate-embeddings || true) & \
     php artisan serve --host=0.0.0.0 --port=$PORT
