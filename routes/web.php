@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'pages.home')->name('home');
 Route::view('/privacy', 'pages.privacy')->name('privacy');
+Route::view('/about', 'pages.about')->name('about');
+Route::view('/help', 'pages.help')->name('help');
+Route::view('/terms', 'pages.terms')->name('terms');
 
 Route::view('/login', 'pages.auth.login')->name('login');
 Route::view('/register', 'pages.auth.register')->name('register');

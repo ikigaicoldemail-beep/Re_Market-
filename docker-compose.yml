@@ -1,3 +1,5 @@
+name: remarket3
+
 x-app-environment: &app-environment
   APP_ENV: local
   APP_DEBUG: "true"
@@ -31,6 +33,12 @@ services:
   mysql:
     image: mysql:8.4
     restart: unless-stopped
+    # Trim MySQL's memory footprint so Docker/WSL2 stops OOM-killing it (exit 137).
+    command:
+      - --performance-schema=OFF
+      - --innodb-buffer-pool-size=128M
+      - --max-connections=50
+      - --mysqlx=OFF
     environment:
       MYSQL_DATABASE: marketplace_backend
       MYSQL_USER: marketplace
@@ -45,6 +53,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 45s
 
   app:
     build:

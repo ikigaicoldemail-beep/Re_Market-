@@ -49,7 +49,9 @@
                     <div x-show="isOwnStore" class="flex flex-wrap gap-2" style="display:none">
                         <a href="/me/products/new"
                             class="text-sm font-medium px-5 py-2 rounded-lg transition bg-white text-indigo-700 hover:bg-indigo-50 inline-flex items-center gap-1.5">
-                            <x-heroicon-o-plus class="w-4 h-4"/>
+                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+</svg>
                             Add item
                         </a>
                         <a href="/social/scheduled-posts"
@@ -74,12 +76,16 @@
                             <span x-show="!followBusy" class="inline-flex items-center gap-1.5">
                                 <template x-if="store?.is_following">
                                     <span class="inline-flex items-center gap-1.5">
-                                        <x-heroicon-s-check class="w-4 h-4"/>Following
+                                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd"/>
+</svg>Following
                                     </span>
                                 </template>
                                 <template x-if="!store?.is_following">
                                     <span class="inline-flex items-center gap-1.5">
-                                        <x-heroicon-o-plus class="w-4 h-4"/>Follow
+                                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+</svg>Follow
                                     </span>
                                 </template>
                             </span>
@@ -124,13 +130,18 @@
                         target="_blank"
                         rel="noopener"
                         class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">
-                        <x-heroicon-o-map-pin class="w-4 h-4"/>
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/>
+</svg>
                         Directions
                     </a>
                     <button type="button"
                         @click="openNearbyPicker()"
                         class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 transition">
-                        <x-heroicon-o-magnifying-glass class="w-4 h-4"/>
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+</svg>
                         Stores near me
                     </button>
                 </div>

@@ -35,7 +35,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY . .
 
-RUN pip3 install --break-system-packages --no-cache-dir -r scripts/requirements-visual-search.txt
+# Visual-search ML deps (torch/openclip/faiss, ~1.5GB) are disabled for a lean, reliable Railway build.
+# Re-enable the line below only if you need local image-similarity search in production:
+# RUN pip3 install --break-system-packages --no-cache-dir -r scripts/requirements-visual-search.txt
 
 # Laravel required folders BEFORE composer install
 RUN mkdir -p storage/framework/cache \

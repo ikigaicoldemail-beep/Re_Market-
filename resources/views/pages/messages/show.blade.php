@@ -8,7 +8,9 @@
 
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="conversationThread()" x-init="init">
     <a href="/messages" class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-600 mb-3 group">
-        <x-heroicon-o-chevron-left class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"/>
+        <svg class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/>
+</svg>
         All conversations
     </a>
 
@@ -57,7 +59,9 @@
                     </template>
                     <template x-if="!productThumb()">
                         <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                            <x-heroicon-o-photo class="w-5 h-5 text-gray-400"/>
+                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
+</svg>
                         </div>
                     </template>
                     <div class="min-w-0">
@@ -75,7 +79,9 @@
             <template x-if="messages.length === 0">
                 <div class="flex flex-col items-center justify-center h-full py-12 text-center">
                     <div class="w-16 h-16 bg-gradient-to-br from-indigo-50 to-violet-100 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
-                        <x-heroicon-o-chat-bubble-left-right class="w-8 h-8 text-indigo-400"/>
+                        <svg class="w-8 h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/>
+</svg>
                     </div>
                     <p class="text-sm font-semibold text-gray-700">Start the conversation</p>
                     <p class="text-xs text-gray-400 mt-1 max-w-xs">Ask about availability, price, or condition — be friendly and clear.</p>
@@ -133,7 +139,9 @@
                             {{-- Seen receipt for my last sent message --}}
                             <template x-if="isMine(msg) && isLastSentMessage(index)">
                                 <p class="text-[10px] text-gray-400 mt-1 px-1 flex items-center gap-1">
-                                    <x-heroicon-s-check-circle class="w-3 h-3"/>
+                                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd"/>
+</svg>
                                     <span x-text="seenLabel"></span>
                                 </p>
                             </template>
@@ -171,7 +179,9 @@
                 <div class="flex-1 flex items-end gap-1 bg-gray-100 rounded-2xl pl-2 pr-2.5 py-1 transition focus-within:ring-2 focus-within:ring-indigo-500 focus-within:bg-white">
                     <label class="cursor-pointer p-2 text-gray-400 hover:text-indigo-600 shrink-0 transition" title="Attach image">
                         <input type="file" accept="image/*" class="hidden" @change="onAttach($event)" x-ref="fileInput">
-                        <x-heroicon-o-paper-clip class="w-5 h-5"/>
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"/>
+</svg>
                     </label>
 
                     <textarea x-model="draft" x-ref="composer" rows="1"
@@ -185,7 +195,9 @@
                 <button type="submit" :disabled="(!draft.trim() && !pendingFile) || sending"
                     class="bg-indigo-600 text-white w-11 h-11 flex items-center justify-center rounded-full hover:bg-indigo-700 disabled:opacity-40 disabled:hover:bg-indigo-600 shrink-0 shadow-sm transition">
                     <template x-if="!sending">
-                        <x-heroicon-m-paper-airplane class="w-5 h-5"/>
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path d="M3.105 2.288a.75.75 0 0 0-.826.95l1.414 4.926A1.5 1.5 0 0 0 5.135 9.25h6.115a.75.75 0 0 1 0 1.5H5.135a1.5 1.5 0 0 0-1.442 1.086l-1.414 4.926a.75.75 0 0 0 .826.95 28.897 28.897 0 0 0 15.293-7.155.75.75 0 0 0 0-1.114A28.897 28.897 0 0 0 3.105 2.288Z"/>
+</svg>
                     </template>
                     <template x-if="sending">
                         <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>

@@ -19,7 +19,10 @@
         style="display:none">
         <div class="w-full max-w-sm rounded-lg border border-white/20 bg-white text-gray-900 shadow-2xl p-6 text-center">
             <div class="w-12 h-12 mx-auto rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center mb-3">
-                <x-heroicon-o-camera class="w-6 h-6"/>
+                <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"/>
+</svg>
             </div>
             <p class="text-lg font-semibold">Drop image</p>
         </div>
@@ -82,7 +85,9 @@
     <div x-show="trending.length > 0" class="mb-8" style="display:none">
         <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <x-heroicon-s-fire class="w-5 h-5 text-amber-500"/>
+                <svg class="w-5 h-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd"/>
+</svg>
                 <span data-i18n="home.trending">Trending</span>
             </h2>
             <a href="?sort=featured" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium" data-i18n="home.view_all">View all</a>
@@ -96,7 +101,9 @@
                             onerror="this.src='https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image'"
                             class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         <span class="absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 inline-flex items-center gap-0.5">
-                            <x-heroicon-s-fire class="w-3 h-3"/> Trending
+                            <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd"/>
+</svg> Trending
                         </span>
                         <span x-show="product.original_price_amount && product.original_price_amount > product.price_amount"
                             class="absolute top-2 right-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700" style="display:none"
@@ -120,7 +127,9 @@
     <div class="mb-5">
         <div class="flex items-center justify-between mb-2">
             <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-                <x-heroicon-o-building-storefront class="w-4 h-4 text-indigo-500"/>
+                <svg class="w-4 h-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z"/>
+</svg>
                 <span>Shops</span>
             </h2>
             <a href="{{ route('stores.index') }}" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">View all</a>
@@ -243,14 +252,20 @@
                         <button type="button" @click="$refs.visualSearchInput.click()" :disabled="visualSearching"
                             title="Search by photo"
                             class="w-10 h-10 rounded-lg border border-gray-300 bg-white text-gray-600 hover:text-indigo-700 hover:border-indigo-300 disabled:opacity-50 flex items-center justify-center">
-                            <x-heroicon-o-camera class="w-5 h-5"/>
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"/>
+</svg>
                         </button>
                         <input x-ref="visualSearchInput" type="file" accept="image/png,image/jpeg,image/webp" capture="environment"
                             @change="searchByPhoto($event)" class="hidden">
                     </div>
                     <div x-show="visualSearchActive" class="mt-2 flex items-center gap-2 text-xs text-indigo-700" style="display:none">
                         <span class="inline-flex items-center gap-1">
-                            <x-heroicon-o-camera class="w-3.5 h-3.5"/>
+                            <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"/>
+</svg>
                             Photo results
                         </span>
                         <button type="button" @click="clearVisualSearch()" class="font-medium hover:text-indigo-900">Clear</button>
@@ -303,7 +318,10 @@
                         <h1 class="text-2xl font-semibold text-gray-900" data-i18n="home.browse">Browse</h1>
                         <div x-show="visualSearchActive" class="mt-2 flex items-center gap-2 text-sm text-indigo-700" style="display:none">
                             <span class="inline-flex items-center gap-1.5">
-                                <x-heroicon-o-camera class="w-4 h-4"/>
+                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"/>
+</svg>
                                 Image search results
                             </span>
                             <button type="button" @click="clearVisualSearch()" class="text-xs font-semibold hover:text-indigo-900">Clear</button>
@@ -319,7 +337,10 @@
 
             <div x-show="!loading && products.length === 0" class="text-center py-20 bg-white rounded-xl border border-gray-200" style="display:none">
                 <div x-show="visualSearchActive" class="w-12 h-12 mx-auto rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3" style="display:none">
-                    <x-heroicon-o-camera class="w-6 h-6"/>
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"/>
+</svg>
                 </div>
                 <p class="text-gray-500" x-text="visualSearchActive ? 'No visual matches found for this image.' : 'No products found. Try adjusting your filters.'"></p>
             </div>
@@ -332,7 +353,9 @@
                             :title="$store.compare.has(product.id) ? 'In compare' : 'Add to compare'"
                             :class="$store.compare.has(product.id) ? 'bg-indigo-600 text-white' : 'bg-white/90 text-gray-600 hover:text-indigo-700'"
                             class="absolute top-2 right-2 w-7 h-7 rounded-full border border-gray-200 shadow-sm z-10 flex items-center justify-center">
-                            <x-heroicon-o-arrows-right-left class="w-3.5 h-3.5"/>
+                            <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+</svg>
                         </button>
                         <div class="aspect-square bg-gray-100 overflow-hidden relative">
                             <img :src="primaryImage(product)" :alt="product.title" loading="lazy"
@@ -347,7 +370,9 @@
                                 x-text="'-' + Math.round((1 - product.price_amount/product.original_price_amount) * 100) + '%'"></span>
                             <span x-show="product.is_featured && !(product.original_price_amount && product.original_price_amount > product.price_amount)"
                                 class="absolute bottom-2 right-2 px-1.5 py-1 rounded-full bg-amber-100 text-amber-700" style="display:none">
-                                <x-heroicon-s-fire class="w-3 h-3"/>
+                                <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd"/>
+</svg>
                             </span>
                             <span x-show="product.similarity && product.similarity >= 0.35"
                                 class="absolute bottom-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-600 text-white" style="display:none"
