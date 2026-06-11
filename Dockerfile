@@ -35,9 +35,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY . .
 
-# Visual-search ML deps (torch/openclip/faiss, ~1.5GB) are disabled for a lean, reliable Railway build.
-# Re-enable the line below only if you need local image-similarity search in production:
-# RUN pip3 install --break-system-packages --no-cache-dir -r scripts/requirements-visual-search.txt
+# Visual-search ML deps (torch/openclip/faiss) — enabled for image-similarity search.
+RUN pip3 install --break-system-packages --no-cache-dir -r scripts/requirements-visual-search.txt
 
 # Laravel required folders BEFORE composer install
 RUN mkdir -p storage/framework/cache \
@@ -58,5 +57,6 @@ RUN npm ci && npm run build
 RUN chmod -R 777 storage bootstrap/cache
 
 CMD php artisan config:clear || true; \
+    php artisan storage:link || true; \
     (php artisan migrate --force || true) & \
     php artisan serve --host=0.0.0.0 --port=$PORT
