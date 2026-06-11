@@ -59,5 +59,5 @@ RUN chmod -R 777 storage bootstrap/cache
 
 CMD php artisan config:cache && \
     php artisan route:cache && \
-    php artisan migrate --force && \
+    (php artisan migrate --force || echo 'migrate skipped (DB not reachable yet)') && \
     php artisan serve --host=0.0.0.0 --port=$PORT
