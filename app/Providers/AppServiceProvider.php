@@ -43,6 +43,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Behind Railway's TLS proxy the container receives plain HTTP, so Laravel
+        // builds http:// asset/form URLs the browser blocks as mixed content.
+        // Force HTTPS for all generated URLs when in production / behind HTTPS.
+        if ($this->app->environment('production') || str_starts_with((string) config('app.url'), 'https://')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // The default /broadcasting/auth route ships with ['web', 'auth']
         // middleware, which doesn't fit our JWT-only stack. Re-register it
         // under the JWT guard so Echo private-channel auth works.

@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Trust Railway's reverse proxy so HTTPS is detected correctly.
+        $middleware->trustProxies(at: '*');
+
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
