@@ -57,6 +57,6 @@ RUN npm ci && npm run build
 
 RUN chmod -R 777 storage bootstrap/cache
 
-CMD php artisan config:clear; \
-    php artisan migrate --force || true; \
+CMD php artisan config:clear || true; \
+    (php artisan migrate --force || true) & \
     php artisan serve --host=0.0.0.0 --port=$PORT
