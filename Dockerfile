@@ -48,6 +48,10 @@ RUN mkdir -p storage/framework/cache \
 
 RUN chmod -R 777 storage bootstrap/cache
 
+# Pre-download the OpenCLIP model (ViT-B-32/openai) into the image cache so
+# visual search doesn't fetch ~350MB at runtime on Railway's ephemeral disk.
+RUN python3 -c "import open_clip; open_clip.create_model_and_transforms('ViT-B-32', pretrained='openai')"
+
 # PHP deps
 RUN composer install --no-dev --optimize-autoloader
 

@@ -26,7 +26,7 @@
 
         <div>
             <h2 class="text-lg font-semibold text-gray-900 mb-2">Get in touch</h2>
-            <p>Questions, feedback, or partnership ideas? Email us at <a href="mailto:services@ikigai2.com" class="text-indigo-600 underline">services@ikigai2.com</a>.</p>
+            <p>Questions, feedback, or partnership ideas? Email us at <a href="mailto:services@ikigai2.com" class="text-indigo-600 underline">Remarket@gmail.com</a>.</p>
         </div>
     </section>
 </div>

@@ -33,6 +33,7 @@ class AuthService
                 'password' => $data['password'],
                 'status' => 'active',
                 'role' => $role,
+                'email_verified_at' => now(),
             ]);
 
             UserProfile::create([
